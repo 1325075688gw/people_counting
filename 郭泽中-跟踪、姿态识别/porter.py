@@ -1,6 +1,6 @@
 from Kalman import Multi_Kalman_Tracker
 import numpy as np
-import json,time
+import json,math
 from track_visual import visual
 from matplotlib import pyplot as plt
 
@@ -8,20 +8,30 @@ plt.rcParams['font.family'] = ['sans-serif']
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus']=False
 
+M=30
+G=0.5
+min_in_last_times=30
+min_out_last_times=60
+rate=0.4
+xmin=-4*math.sqrt(3)
+xmax=4*math.sqrt(3)
+ymax=8
+
 '''
 test
 '''
-filepath= 'cart_transfer_data-5人.json'
+filepath= 'cart_transfer_data.json'
 file=open(filepath)
 data=json.load(file)
 
-tracker=Multi_Kalman_Tracker(0.5,30,60,30,0.5,-4,4,8)
+tracker=Multi_Kalman_Tracker(G,min_in_last_times,min_out_last_times,M,rate,xmin,xmax,ymax)
 
-fig=plt.figure(figsize=(8,8))
-ax=fig.add_subplot(111)
+fig=plt.figure(figsize=(xmax-xmin,ymax))
 plt.ion()
 
+all_clusters=[]
 all_heights=[]
+all_postures=[0,0,0,0,0]
 
 for frame in data:
     point_list=data[frame]
@@ -35,25 +45,26 @@ for frame in data:
         clusters=[]
         heights=[]
 
+    all_clusters.append(clusters)
     tracker.nextFrame(clusters,heights,int(frame))
 
     postures=tracker.get_each_person_posture()
     locations=tracker.get_each_person_location()
-    distances=tracker.get_each_person_distance()
+    #distances=tracker.get_each_person_distance()
     heights=tracker.get_each_person_height()
-    raw_heights=tracker.get_each_person_raw_height()
+    #raw_heights=tracker.get_each_person_raw_height()
+
+    if len(all_clusters)>M:
+        clusters=all_clusters[-M-1]
+    else:
+        clusters=[]
 
     for id in heights:
         all_heights.append(heights[id])
+        all_postures[postures[id]]+=1
 
-    # visual(ax,locations,postures,frame)
-    #
-    # plt.pause(0.0000001)
-    # plt.cla()
+    visual(locations,postures,len(clusters))
 
-    print('------------------------',frame)
-    print('locations:',len(locations))
-    print('clusters:',len(clusters))
-
-
-print(np.mean(all_heights),np.std(all_heights))
+print([all_postures[i]/sum(all_postures) for i in range(1,5)])
+print('均值:',np.mean(all_heights))
+print('方差:',np.std(all_heights))

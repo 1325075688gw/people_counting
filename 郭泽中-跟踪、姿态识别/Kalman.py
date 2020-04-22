@@ -22,6 +22,7 @@ class Multi_Kalman_Tracker():
         self.pre_tracks=dict()
         self.clusters = []  # 当前帧中的点
         self.not_detected_times=dict()
+        self.not_move_times=dict()
         self.pre_not_detected_times=dict()
         self.heights=[]    #当前帧中的每个人的身高
         self.unused_clusters=[]
@@ -33,7 +34,7 @@ class Multi_Kalman_Tracker():
         self.max_id=1
         self.pre_max_id=1
 
-        self.M=M
+        self.M=M    #NOTE:M必须是偶数
         self.rate=rate
         self.min_in_last_times=min_in_last_times
         self.min_out_last_times=min_out_last_times
@@ -58,10 +59,11 @@ class Multi_Kalman_Tracker():
         track=Track(self.max_id,s,self.processNoiseCov,self.frame,height)
         self.tracks[self.max_id]=track
         self.not_detected_times[self.max_id]=0
+        self.not_move_times[self.max_id]=0
         self.max_id+=1
 
     def init_pre_track(self,s,height):
-        track=Track(self.pre_max_id,s,self.processNoiseCov,self.frame,height)
+        track=Track(self.pre_max_id,s,self.processNoiseCov,self.frame,height,self.M)
         self.pre_tracks[self.pre_max_id]=track
         self.pre_not_detected_times[self.pre_max_id]=0
         self.pre_max_id+=1
@@ -92,7 +94,7 @@ class Multi_Kalman_Tracker():
         track_ids=list(self.tracks.keys())
 
         for i in range(len(self.tracks)):
-            if col_ind[i]<len(self.clusters) and distance[i][col_ind[i]]<self.G+0.033*self.not_detected_times[track_ids[i]]:
+            if col_ind[i]<len(self.clusters) and distance[i][col_ind[i]]<self.G+0.033*self.not_move_times[track_ids[i]]:
                 self.d[track_ids[i]]=col_ind[i]
 
     def pre_association(self):
@@ -144,19 +146,20 @@ class Multi_Kalman_Tracker():
             if track_id not in self.d:
                 #若上一帧中轨迹位于边缘
                 if self.is_at_edge(track.s):
-                    self.not_detected_times[track_id] += 2
+                    self.not_detected_times[track_id] += 0.5
                     if self.not_detected_times[track_id]>self.min_out_last_times:
                         to_be_deleted.append(track_id)
                     else:
                         self.update_unassigned_track(track_id)
                 else:
-                    self.not_detected_times[track_id]+=1
+                    self.not_move_times[track_id]+=1
                     if self.not_detected_times[track_id]>self.min_out_last_times*1.5:
                         to_be_deleted.append(track_id)
                     else:
                         self.update_unassigned_track(track_id)
             else:
-                self.not_detected_times[track_id]=max(0,self.not_detected_times[track_id]-3)
+                self.not_detected_times[track_id]=max(0,self.not_detected_times[track_id]-1)
+                self.not_move_times[track_id]=max(0,self.not_move_times[track_id]-1.5)
 
         for track_id in to_be_deleted:
             self.delete_track(track_id)
@@ -176,12 +179,13 @@ class Multi_Kalman_Tracker():
                         track_id]) / self.min_in_last_times > self.rate:
                         self.tracks[self.max_id] = self.pre_tracks[track_id]
                         self.not_detected_times[self.max_id] = 0
+                        self.not_move_times[self.max_id]=0
                         self.max_id += 1
 
                         print('---------------------------')
                         print('生成新轨迹！',self.frame)
-                        for track_id in self.tracks:
-                            print(track_id,self.not_detected_times[track_id])
+                        print(self.not_move_times)
+                        print(self.pre_not_detected_times)
 
         for track_id in to_be_deleted:
             self.delete_pre_track(track_id)
@@ -266,12 +270,13 @@ class Multi_Kalman_Tracker():
                     track_id]) / self.min_in_last_times > self.rate:
                     self.tracks[self.max_id] = self.pre_tracks[track_id]
                     self.not_detected_times[self.max_id] = 0
+                    self.not_move_times[self.max_id]=0
                     self.max_id += 1
 
                     print('---------------------------')
                     print('生成新轨迹！', self.frame)
-                    for track_id in self.tracks:
-                        print(track_id, self.not_detected_times[track_id])
+                    print(self.not_move_times)
+                    print(self.pre_not_detected_times)
 
         for track_id in to_be_deleted:
             self.delete_pre_track(track_id)
@@ -305,7 +310,7 @@ class Multi_Kalman_Tracker():
         #判断是否位于雷达探测范围边缘
         if s[1]<0.2:
             return True
-        if abs(s[0])>s[1]/math.sqrt(2)-0.2:
+        if abs(s[0])>s[1]*math.sqrt(3)-0.2:
             return True
         return False
 
@@ -370,7 +375,7 @@ class Multi_Kalman_Tracker():
 
         for track_id in self.tracks:
             track=self.tracks[track_id]
-            height=track.height.get_current_height(self.M)
+            height=track.get_height()
             if height is not None:
                 heights[track_id]=round(height,2)
 
@@ -403,7 +408,7 @@ class Multi_Kalman_Tracker():
 
         for track_id in self.tracks:
             track=self.tracks[track_id]
-            location=track.get_location(self.M)
+            location=track.get_location()
             if location is not None:
                 locations[track_id]=location
 
@@ -415,7 +420,7 @@ class Multi_Kalman_Tracker():
 
         for track_id in self.tracks:
             track=self.tracks[track_id]
-            posture=track.get_posture(self.M,self.rate)
+            posture=track.get_posture(self.rate)
             if posture is not None:
                 postures[track_id]=posture
 
