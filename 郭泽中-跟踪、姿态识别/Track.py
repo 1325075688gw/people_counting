@@ -3,13 +3,19 @@ import numpy as np
 MAX_SAVE_FRAMES = 150  # 用于限制内存占用
 
 class Height():
+    '''
+        身高计算中有如下假设：
+            1.人的身高在1.5m-2.1m
+            2.在从一个人出现开始的头FRAME_NUMBER_FOR_HEIGHT_CAL帧中，人会出现站立的情况
+            3.人在一开始进入雷达探测范围时是站着的
+    '''
 
     FRAME_NUMBER_FOR_HEIGHT_CAL=150 #不可小于MAX_SAVE_FRAMES
 
     def __init__(self,height):
         self.height=[height]
         self.origin_height=[height]
-        self.real_height=1.85
+        self.real_height=height
 
         #kalman部分
         self.transitionMatrix = 1
@@ -20,9 +26,6 @@ class Height():
         self.s_ = 0
 
     def get_height_rate(self):
-        # if len(self.height)<self.FRAME_NUMBER_FOR_HEIGHT_CAL:
-        #     return 1
-        # else:
         return self.height[-1]/self.real_height
 
     def get_current_height(self,M):
@@ -47,18 +50,39 @@ class Height():
         self.height.append(self.s)
         self.origin_height.append(height)
 
-        # if len(self.height)==self.FRAME_NUMBER_FOR_HEIGHT_CAL:
-        #     self.real_height=np.mean(self.height)
+        if len(self.height)==self.FRAME_NUMBER_FOR_HEIGHT_CAL:
+            self.cal_real_height()
 
         if len(self.height)>MAX_SAVE_FRAMES:
             del self.height[0]
+            del self.origin_height[0]
+
+    def cal_real_height(self):
+        min_block_length=7
+        sub_to_cut=0.1
+
+        i=min_block_length
+        start=0
+        mean_block_heights=[]
+
+        while i<len(self.height)-min_block_length:
+            mean1=np.mean(self.height[i-min_block_length:i])
+            mean2=np.mean(self.height[i:i+min_block_length])
+            if abs(mean1-mean2)>=sub_to_cut:
+                mean_block_heights.append(np.mean(self.height[start:i]))
+                start=i
+            i+=min_block_length
+
+        mean_block_heights.append(np.mean(self.height[start:]))
+
+        self.real_height=np.max(mean_block_heights)
 
 class Posture():
 
     HEIGHT_THRESHOLD_BETWEEN_STAND_SIT=0.82
     HEIGHT_THRESHOLD_BETWEEN_SIT_LYING=0.58
 
-    MOVE_RANGE_THRESHOLD_BETWEEN_WALK_STAND=0.5
+    MOVE_RANGE_THRESHOLD_BETWEEN_WALK_STAND=0.25
     VELOCITY_THRESHOLD_BETWEEN_WALK_STAND=0.016
 
     def __init__(self):
@@ -86,7 +110,7 @@ class Posture():
         return self.last_posture
 
     def cal_posture(self,height_rate,velocity,move_range):
-        if velocity>self.VELOCITY_THRESHOLD_BETWEEN_WALK_STAND and move_range>self.MOVE_RANGE_THRESHOLD_BETWEEN_WALK_STAND:
+        if velocity>self.VELOCITY_THRESHOLD_BETWEEN_WALK_STAND or move_range>self.MOVE_RANGE_THRESHOLD_BETWEEN_WALK_STAND:
             return 4
         else:
             if height_rate>self.HEIGHT_THRESHOLD_BETWEEN_STAND_SIT:

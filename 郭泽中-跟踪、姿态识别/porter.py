@@ -20,7 +20,7 @@ ymax=8
 '''
 test
 '''
-filepath= 'cart_transfer_data.json'
+filepath= '在雷达照射方向上来回走动/data_4_22_1_1.6_在雷达照射方向上来回走动/cart_transfer_data.json'
 file=open(filepath)
 data=json.load(file)
 

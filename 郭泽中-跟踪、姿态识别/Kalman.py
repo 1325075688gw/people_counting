@@ -1,7 +1,7 @@
 import numpy as np
 from Track import Track
-from hungary import hungary
-import math
+import math,copy
+from scipy.optimize import linear_sum_assignment
 
 '''
     NOTE:
@@ -9,7 +9,6 @@ import math
         也就是说会有一个人为的M帧的延迟
 '''
 
-#v5.0
 class Multi_Kalman_Tracker():
     #初始化
     def __init__(self,G,min_in_last_times,min_out_last_times,M,rate,xmin,xmax,ymax):
@@ -90,7 +89,7 @@ class Multi_Kalman_Tracker():
         distance=self.cal_distance()
 
         #使用匈牙利算法为每条轨迹分配一个点
-        row_ind,col_ind=hungary(distance)
+        row_ind,col_ind=self.hungary(distance)
         track_ids=list(self.tracks.keys())
 
         for i in range(len(self.tracks)):
@@ -105,7 +104,7 @@ class Multi_Kalman_Tracker():
         distance=self.cal_pre_distance()
 
         #使用匈牙利算法为每条轨迹分配一个点
-        row_ind,col_ind=hungary(distance)
+        row_ind,col_ind=self.hungary(distance)
         track_ids=list(self.pre_tracks.keys())
 
         for i in range(len(self.pre_tracks)):
@@ -368,6 +367,25 @@ class Multi_Kalman_Tracker():
                 distance = np.append(distance, [row], axis=0)
 
         return distance
+
+    def hungary(self,speedMatrix):
+        row = len(speedMatrix)
+        col = len(speedMatrix[0])
+        matrix = copy.copy(speedMatrix)
+
+        while row != col:
+            if row < col:
+                sub_row = np.array([100.0] * col)
+                matrix = np.append(matrix, [sub_row], axis=0)
+                row += 1
+            else:
+                sub_col = np.array([100.0] * row)
+                matrix = np.append(matrix.T, [sub_col], axis=0).T
+                col += 1
+
+        row_ind, col_ind = linear_sum_assignment(matrix)
+
+        return row_ind, col_ind
 
     #获得每个人的身高
     def get_each_person_height(self):
