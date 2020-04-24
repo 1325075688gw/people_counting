@@ -41,4 +41,3 @@ class Points_Filter():
 		self.filter_by_z(frame_data)
 		return frame_data['point_num']
 
-	
