@@ -15,6 +15,7 @@ sys.path.append(r"../杨家辉-点云聚类")
 
 import analyze_radar_data
 import common
+import show_test
 
 queue_for_calculate_transfer = Queue()
 
@@ -133,7 +134,7 @@ class UartParseSDK():
         :return: None
         """
         current_dir = os.path.dirname(__file__)
-        file = open(current_dir + "./ODS_6m_default.cfg", "r+")
+        file = open(current_dir + "./ODS_6m_default_demo.cfg", "r+")
         if file is None:
             print("配置文件不存在!")
             return
@@ -175,7 +176,7 @@ class UartParseSDK():
         毫米波雷达采集数据，然后将数据push到队列中，供杨家辉调用
         :return:None
         """
-        while self.flag:
+        while 1:
             point_cloud_num = 0
             point_cloud_list = []
             cart_transfer = queue_for_calculate_transfer.get().transpose()
@@ -192,6 +193,7 @@ class UartParseSDK():
             tempp["point_list"] = point_cloud_list
             frame_num = "frame_num_" + str(self.frame_num)
             frame_dict = {frame_num: tempp}
+            print("frame_num:{0}".format(self.frame_num))
             self.json_data_transfer.update(frame_dict)
             common.queue_for_cluster_transfer.put(tempp)
 
@@ -200,9 +202,11 @@ class UartParseSDK():
         先聚类，然后再可视化
         :return: None
         """
-        time.sleep(3)
-        self.cluster_points_thread().start()
-        self.show_cluster_tracker_thread().start()
+        time.sleep(1)
+        # self.cluster_points_thread().start()
+        # self.show_cluster_tracker_thread().start()
+        show_2d = Thread(target=show_test.run_show_pointcloud)
+        show_2d.start()
 
     def cluster_points_thread(self):
         """
