@@ -1,37 +1,37 @@
 from Kalman import Multi_Kalman_Tracker
 import numpy as np
-import json,math
-from track_visual import visual
-from matplotlib import pyplot as plt
+import json,math,time,sys
+from visual import ApplicationWindow
+from PyQt5 import QtWidgets
+import common
 
-plt.rcParams['font.family'] = ['sans-serif']
-plt.rcParams['font.sans-serif'] = ['SimHei']
-plt.rcParams['axes.unicode_minus']=False
-
+detection_range=6
 M=30
-G=0.5
+G=1
 min_in_last_times=30
 min_out_last_times=60
 rate=0.4
-xmin=-4*math.sqrt(3)
-xmax=4*math.sqrt(3)
-ymax=8
+xmin=-detection_range/2*math.sqrt(3)
+xmax=detection_range/2*math.sqrt(3)
+ymax=detection_range
+
 
 '''
 test
 '''
-filepath= '在雷达照射方向上来回走动/data_4_22_1_1.6_在雷达照射方向上来回走动/cart_transfer_data.json'
+filepath= '龚伟_4_29_v1/data_4_29,1-6米来回走,第一次/cart_transfer_data.json'
 file=open(filepath)
 data=json.load(file)
 
 tracker=Multi_Kalman_Tracker(G,min_in_last_times,min_out_last_times,M,rate,xmin,xmax,ymax)
 
-fig=plt.figure(figsize=(xmax-xmin,ymax))
-plt.ion()
-
-all_clusters=[]
-all_heights=[]
+kalman_heights=[]
+cluster_heights=[]
 all_postures=[0,0,0,0,0]
+
+qapp=QtWidgets.QApplication(sys.argv)
+app=ApplicationWindow(xmin,xmax,ymax)
+app.show()
 
 for frame in data:
     point_list=data[frame]
@@ -40,12 +40,12 @@ for frame in data:
     if len(point_list)!=0:
         clusters=point_list[:,:2]
         heights=point_list[:,-1]
-
     else:
         clusters=[]
         heights=[]
 
-    all_clusters.append(clusters)
+    cluster_heights.extend(heights)
+
     tracker.nextFrame(clusters,heights,int(frame))
 
     postures=tracker.get_each_person_posture()
@@ -54,17 +54,17 @@ for frame in data:
     heights=tracker.get_each_person_height()
     #raw_heights=tracker.get_each_person_raw_height()
 
-    if len(all_clusters)>M:
-        clusters=all_clusters[-M-1]
-    else:
-        clusters=[]
+    common.loc_pos.put([locations,postures,clusters])
 
     for id in heights:
-        all_heights.append(heights[id])
+        kalman_heights.append(heights[id])
         all_postures[postures[id]]+=1
 
-    visual(locations,postures,len(clusters))
-
+print(sum(all_postures))
 print([all_postures[i]/sum(all_postures) for i in range(1,5)])
-print('均值:',np.mean(all_heights))
-print('方差:',np.std(all_heights))
+print('均值:',np.mean(kalman_heights),len(kalman_heights))
+print('方差:',np.std(kalman_heights))
+print('原始均值:',np.mean(cluster_heights),len(cluster_heights),'总帧数',len(data))
+print('原始方差:',np.std(cluster_heights))
+
+qapp.exec_()

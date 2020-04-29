@@ -16,6 +16,7 @@ class Height():
         self.height=[height]
         self.origin_height=[height]
         self.real_height=height
+        self.has_not_cal_real_height=True
 
         #kalman部分
         self.transitionMatrix = 1
@@ -50,8 +51,9 @@ class Height():
         self.height.append(self.s)
         self.origin_height.append(height)
 
-        if len(self.height)==self.FRAME_NUMBER_FOR_HEIGHT_CAL:
+        if len(self.height)==self.FRAME_NUMBER_FOR_HEIGHT_CAL and self.has_not_cal_real_height:
             self.cal_real_height()
+            self.has_not_cal_real_height=False
 
         if len(self.height)>MAX_SAVE_FRAMES:
             del self.height[0]
@@ -64,18 +66,35 @@ class Height():
         i=min_block_length
         start=0
         mean_block_heights=[]
+        height_blocks=[]
 
         while i<len(self.height)-min_block_length:
             mean1=np.mean(self.height[i-min_block_length:i])
             mean2=np.mean(self.height[i:i+min_block_length])
             if abs(mean1-mean2)>=sub_to_cut:
-                mean_block_heights.append(np.mean(self.height[start:i]))
+                # mean_block_heights.append(np.mean(self.height[start:i]))
+                height_blocks.append(self.height[start:i])
                 start=i
             i+=min_block_length
 
-        mean_block_heights.append(np.mean(self.height[start:]))
+        # mean_block_heights.append(np.mean(self.height[start:]))
+        height_blocks.append(self.height[start:])
+
+        std=0.01
+        while std<0.1:
+            for height_block in height_blocks:
+                if np.std(height_block)<std:
+                    mean_block_heights.append(np.mean(height_block))
+            if len(mean_block_heights)>0:
+                break
+            std+=0.01
+
+        if len(mean_block_heights)==0:
+            mean_block_heights.append(np.mean(self.height))
 
         self.real_height=np.max(mean_block_heights)
+
+        print('real_height:',self.real_height)
 
 class Posture():
 
@@ -110,15 +129,14 @@ class Posture():
         return self.last_posture
 
     def cal_posture(self,height_rate,velocity,move_range):
-        if velocity>self.VELOCITY_THRESHOLD_BETWEEN_WALK_STAND or move_range>self.MOVE_RANGE_THRESHOLD_BETWEEN_WALK_STAND:
-            return 4
+        if height_rate>self.HEIGHT_THRESHOLD_BETWEEN_STAND_SIT:
+            if velocity > self.VELOCITY_THRESHOLD_BETWEEN_WALK_STAND or move_range > self.MOVE_RANGE_THRESHOLD_BETWEEN_WALK_STAND:
+                return 4
+            return 1
+        elif height_rate>self.HEIGHT_THRESHOLD_BETWEEN_SIT_LYING:
+            return 2
         else:
-            if height_rate>self.HEIGHT_THRESHOLD_BETWEEN_STAND_SIT:
-                return 1
-            elif height_rate>self.HEIGHT_THRESHOLD_BETWEEN_SIT_LYING:
-                return 2
-            else:
-                return 3
+            return 3
 
 class Track():
 
