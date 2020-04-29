@@ -19,7 +19,7 @@ ymax=detection_range
 '''
 test
 '''
-filepath= '龚伟_4_29_v1/data_4_29,1-6米来回走,第一次/cart_transfer_data.json'
+filepath= '多人/data_4_22_4_7人转圈走动4圈/data_4_22_4_7人转圈走动4圈/cart_transfer_data.json'
 file=open(filepath)
 data=json.load(file)
 
@@ -67,4 +67,4 @@ print('方差:',np.std(kalman_heights))
 print('原始均值:',np.mean(cluster_heights),len(cluster_heights),'总帧数',len(data))
 print('原始方差:',np.std(cluster_heights))
 
-qapp.exec_()
+sys.exit(qapp.exec_())
