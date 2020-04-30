@@ -29,9 +29,9 @@ class PointCloud():
         if common.queue_for_cluster_transfer.empty():
             return False
         frame_data = common.queue_for_cluster_transfer.get()
-        pointcloud = PointCloud.framedata_to_pointcloud(frame_data)
+        pointcloud[:] = PointCloud.framedata_to_pointcloud(frame_data)
         if dofilter:
-            pointcloud = PointCloud.doppler_filter(pointcloud)
+            pointcloud[:] = PointCloud.doppler_filter(pointcloud)
         return True
 
 
