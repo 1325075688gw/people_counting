@@ -1,7 +1,8 @@
 import sys
 import common
 sys.path.append(r"../龚伟-点云检测")
-
+# sys.path.append(r"../") #for me
+# import commo #for me
 
 class PointCloud():
     def __init__(self):
@@ -32,3 +33,17 @@ class PointCloud():
         if dofilter:
             pointcloud = PointCloud.doppler_filter(pointcloud)
         return True
+
+
+### for me test
+    '''
+    @staticmethod
+    def get_frame_pointcloud(pointcloud, dofilter):
+        if commo.point_cloud_show_queue.empty():
+            return False
+        frame_data = commo.point_cloud_show_queue.get()
+        pointcloud[:] = PointCloud.framedata_to_pointcloud(frame_data)
+        if dofilter:
+            pointcloud[:] = PointCloud.doppler_filter(pointcloud)
+        return True
+'''
