@@ -2,7 +2,7 @@ import sys
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
-from commo import cluster_show_queue
+from common import cluster_show_queue
 # sys.path.append("../")
 # sys.path.append("../src")
 from point_cloud import PointCloud

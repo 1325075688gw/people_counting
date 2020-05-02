@@ -4,6 +4,7 @@ import math
 import numpy as np
 
 import common
+from common import cluster_show_queue
 import show
 
 sys.path.append(r"../龚伟-点云检测")
@@ -29,6 +30,8 @@ def cluster_points():
 		cl.do_clsuter(frame_data)
 		clusters_center = cl.get_cluster_center_point_list()
 		people_height_list = cl.get_height_list()
+		frame_cluster_dict = copy.deepcopy(cl.frame_cluster_dict)
+		cluster_show_queue.put(frame_cluster_dict)
 		frame_num = frame_data["frame_num"]
 		tracker.nextFrame(clusters_center, people_height_list, frame_num)
 		locations = tracker.get_each_person_location()
