@@ -13,16 +13,16 @@ def get_frame_pointcloud(framedata):
     return pointcloud
 
 
-def show2d_xoy(pointcloud):
-    # ax = fig.add_subplot(111)
+def show2d_xoy(pointcloud, fig):
+    ax = fig.add_subplot(121)
     X = np.array(pointcloud)
     if X != []:
-        plt.scatter(X[:, 0], X[:, 1], marker='.')
-    plt.scatter(0, 0, c='g')
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.xlim(-4, 4)
-    plt.ylim(0, 8)
+        ax.scatter(X[:, 0], X[:, 1], marker='.')
+    ax.scatter(0, 0, c='g')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_xlim(-4, 4)
+    ax.set_ylim(0, 8)
     #ax.legend(loc='upper left')
 
 
@@ -48,31 +48,23 @@ def doppler_filter(pointcloud):
 
 
 
-def show_pointcloud(framedata):
+def show_pointcloud(framedata, fig):
     pointcloud = get_frame_pointcloud(framedata)
-    # pointcloud = doppler_filter(pointcloud)
-    show2d_xoy(pointcloud)
-    # show2d_xoz(pointcloud, fig)
+    pointcloud = doppler_filter(pointcloud)
+    show2d_xoy(pointcloud, fig)
+    show2d_xoz(pointcloud, fig)
 
 def run_show_pointcloud():
-    fig = plt.figure(figsize=(10, 10))
-    num = 0
+    fig = plt.figure(figsize=(20, 10))
     while 1:
-        num += 1
+        plt.clf()
         frame_data = common.queue_for_cluster_transfer.get()
-        frame_num = frame_data["frame_num"]
-        if num < 4:
-            continue
-        else:
-            num = 0
-            show_pointcloud(frame_data)
-            plt.title("frame_num:{0}".format(frame_num))
-            plt.pause(0.0001)
-            plt.clf()
+        show_pointcloud(frame_data, fig)
+        plt.pause(0.04)
         #print(len(cluster_show['cluster']))
         #if cluster_show['frame_num'] >865:
         #	plt.pause(15)
 
 
-# if __name__ == "__main__":
-#     run_show_pointcloud()
+if __name__ == "__main__":
+    run_show_pointcloud()
