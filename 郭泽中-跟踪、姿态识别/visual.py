@@ -30,6 +30,7 @@ class ApplicationWindow(QWidget):
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
         self.plt=pg.PlotWidget()
+        self.plt.setRange(xRange=[self.xmin,self.xmax],yRange=[0,self.range],padding=0)
         self.layout.addWidget(self.plt)
         self.plt.setBackground('w')
 
@@ -54,7 +55,9 @@ class ApplicationWindow(QWidget):
         if common.loc_pos.empty():
             return
 
-        locations,postures,clusters=common.loc_pos.get()
+        locations,postures,cluster_num=common.loc_pos.get()
+
+        self.setWindowTitle('当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
 
         #删除已消失掉的人
         for person in self.people:
@@ -84,7 +87,7 @@ class ApplicationWindow(QWidget):
     def timer_start(self):
         self.timer = pg.Qt.QtCore.QTimer(self)
         self.timer.timeout.connect(self._update_canvas)
-        self.timer.start(1)
+        self.timer.start(33)
 
     def get_color_index(self):
         for i in range(20):

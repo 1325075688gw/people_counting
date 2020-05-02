@@ -5,21 +5,20 @@ from visual import ApplicationWindow
 from PyQt5 import QtWidgets
 import common
 
-detection_range=6
+detection_range=8
 M=30
 G=1
 min_in_last_times=30
 min_out_last_times=60
-rate=0.4
+rate=0.5
 xmin=-detection_range/2*math.sqrt(3)
 xmax=detection_range/2*math.sqrt(3)
 ymax=detection_range
 
-
 '''
 test
 '''
-filepath= '多人/data_4_22_4_7人转圈走动4圈/data_4_22_4_7人转圈走动4圈/cart_transfer_data.json'
+filepath= 'data_5_1,1-7米随意走动，第五次/cart_transfer_data.json'
 file=open(filepath)
 data=json.load(file)
 
@@ -54,7 +53,7 @@ for frame in data:
     heights=tracker.get_each_person_height()
     #raw_heights=tracker.get_each_person_raw_height()
 
-    common.loc_pos.put([locations,postures,clusters])
+    common.loc_pos.put([locations,postures,tracker.get_cluster_num()])
 
     for id in heights:
         kalman_heights.append(heights[id])

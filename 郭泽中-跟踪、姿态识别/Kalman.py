@@ -14,6 +14,8 @@ class Multi_Kalman_Tracker():
         不会直接生成轨迹，而是先生成预轨迹，在满足一定条件后，将预轨迹转换为轨迹
     '''
 
+    cluster_nums=[]
+
     #初始化
     def __init__(self,G,min_in_last_times,min_out_last_times,M,rate,xmin,xmax,ymax):
         self.measurementMatrix=np.array([[1, 0,], [0, 1]])    #H
@@ -282,13 +284,13 @@ class Multi_Kalman_Tracker():
 
         for track_id in to_be_deleted:
             self.delete_pre_track(track_id)
-
         #track_update end
 
         #处理当前帧未被处理的点
-
         for j in range(len(self.unused_clusters)):
-            if j not in used_clusters:
+            if j in used_clusters:
+                continue
+            if self.is_at_edge(self.unused_clusters[j]):
                 self.init_pre_track(self.unused_clusters[j],self.unused_heights[j])
 
     #输入下一帧数据进行计算
@@ -304,15 +306,18 @@ class Multi_Kalman_Tracker():
         self.association()
         self.update()
 
+        #保存当前帧过滤后的聚类点
+        self.cluster_nums.append(len(self.clusters))
+
     #判断轨迹是否位于边缘
     def is_at_edge(self,s):
         #判断是否位于给定空间边缘
-        if s[0]<self.xmin+0.2 or s[0]>self.xmax-0.2 or s[1]>self.ymax-0.2:
+        if s[0]<self.xmin+0.5 or s[0]>self.xmax-0.5 or s[1]>self.ymax-0.5:
             return True
         #判断是否位于雷达探测范围边缘
-        if s[1]<0.2:
+        if s[1]<1:
             return True
-        if abs(s[0])>s[1]*math.sqrt(3)-0.2:
+        if abs(s[0])>s[1]*math.sqrt(3)-0.5:
             return True
         return False
 
@@ -429,7 +434,7 @@ class Multi_Kalman_Tracker():
 
         for track_id in self.tracks:
             track=self.tracks[track_id]
-            location=track.get_location()
+            location=track.get_location(6)
             if location is not None:
                 locations[track_id]=location
 
@@ -457,3 +462,10 @@ class Multi_Kalman_Tracker():
                 raw_height[track_id]=round(track.height.origin_height[-1-self.M],2)
 
         return raw_height
+
+    #获得倒数第M+1帧的聚类个数
+    def get_cluster_num(self):
+        if len(self.cluster_nums)<self.M+1:
+            return 0
+        else:
+            return self.cluster_nums[-self.M-1]

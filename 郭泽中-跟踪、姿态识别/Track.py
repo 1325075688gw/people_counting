@@ -186,10 +186,12 @@ class Track():
         velocity=np.linalg.norm(self.u[-int(self.M/2)-1])
         self.posture.add_posture(height_rate,velocity,move_range)
 
-    def get_location(self):
+    def get_location(self,radius):
         if len(self.points)<self.M+1:
             return None
-        return self.points[-self.M-1]
+        start=max(-len(self.points),int(-self.M*5/radius-1))
+        end=int(-self.M*3/radius)
+        return np.array(self.points)[start:end].mean(axis=0)
 
     def get_height(self):
         return self.height.get_current_height(self.M)
