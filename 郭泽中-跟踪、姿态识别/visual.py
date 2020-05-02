@@ -12,6 +12,8 @@ class ApplicationWindow(QWidget):
             '#F35595','#2B6D76']
     used_color_indexes=[]
 
+    posture_status={1:'站立',2:'坐着',3:'躺着',4:'行走'}
+
     def __init__(self,xmin,xmax,range):
         super().__init__()
 
@@ -76,7 +78,7 @@ class ApplicationWindow(QWidget):
                 self.people[person]=self.colors[index]
 
             locs.append({'pos':locations[person],'brush':self.people[person]})
-            text=pg.TextItem(str(postures[person]),color='#000000')
+            text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
             text.setPos(locations[person][0],locations[person][1])
             self.texts.append(text)
             self.plt.addItem(text)
