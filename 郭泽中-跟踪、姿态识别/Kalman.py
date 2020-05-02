@@ -467,6 +467,16 @@ class Multi_Kalman_Tracker():
 
         return locations
 
+    def get_each_person_current_frame_location(self):
+        locations=dict()
+
+        for track_id in self.tracks:
+            track=self.tracks[track_id]
+            location=track.points[-1]
+            locations[track_id]=location
+
+        return locations
+
     #获得每个人的姿态
     def get_each_person_posture(self):
         postures=dict()
