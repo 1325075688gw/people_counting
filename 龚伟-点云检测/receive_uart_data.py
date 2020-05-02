@@ -16,6 +16,8 @@ sys.path.append(r"../杨家辉-点云聚类")
 import analyze_radar_data
 import common
 import show_test
+from qt_show import MainWindow
+from cluster_show import ClusterWindow
 
 queue_for_calculate_transfer = Queue()
 
@@ -94,11 +96,11 @@ class UartParseSDK():
         self.save_points_th = Thread()
         self.receive_data_th = 0
         self.missed_frame_num = 0
-        self.theta = math.radians(theta)
-        self.theta_diff = math.radians(90 - 17)
+        self.theta = math.radians(10)
+        self.theta_diff = math.radians(90 - 10)
         self.theta_30 = math.radians(0)
         self.theta_15 = math.radians(0)
-        self.radar_z = radar_z
+        self.radar_z = 2.13
         '''
         port=串口号, 
         baudrate=波特率, 
@@ -134,7 +136,7 @@ class UartParseSDK():
         :return: None
         """
         current_dir = os.path.dirname(__file__)
-        file = open(current_dir + "./ODS_6m_default_demo.cfg", "r+")
+        file = open(current_dir + "./ODS_6m_default.cfg", "r+")
         if file is None:
             print("配置文件不存在!")
             return
@@ -205,8 +207,12 @@ class UartParseSDK():
         time.sleep(1)
         # self.cluster_points_thread().start()
         # self.show_cluster_tracker_thread().start()
-        show_2d = Thread(target=show_test.run_show_pointcloud)
-        show_2d.start()
+
+        # show_2d = Thread(target=show_test.run_show_pointcloud)
+        # show_2d.start()
+
+        mm = ClusterWindow(1200, 600)
+        mm.run()
 
     def cluster_points_thread(self):
         """
