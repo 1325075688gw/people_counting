@@ -36,7 +36,8 @@ def cluster_points():
 		tracker.nextFrame(clusters_center, people_height_list, frame_num)
 		locations = tracker.get_each_person_location()
 		postures = tracker.get_each_person_posture()
-		common.queue_for_show_transfer.put([frame_num, locations, postures])
+		#common.queue_for_show_transfer.put([frame_num, locations, postures])
+		common.loc_pos.put([locations, postures, tracker.get_cluster_num()])
 
 
 def show_track():
