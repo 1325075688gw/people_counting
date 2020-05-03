@@ -2,11 +2,10 @@ import sys
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
-sys.path.append(r"../龚伟-点云检测")
-
-from common import cluster_show_queue
-# sys.path.append("../")
-# sys.path.append("../src")
+from commo import cluster_show_queue
+from commo import point_cloud_show_queue
+sys.path.append("../")
+sys.path.append("../src")
 from point_cloud import PointCloud
 
 class ClusterWindow():
@@ -46,6 +45,8 @@ class ClusterWindow():
         point_cloud = []
         for text_item in self.snr_texts_item:
             text_item.setText("")
+        if point_cloud_show_queue.empty() or cluster_show_queue.empty():
+            return
 
         if not cluster_show_queue.empty():
             cluster_data = cluster_show_queue.get()
@@ -80,5 +81,5 @@ class ClusterWindow():
     def run(self):
         timer = pg.QtCore.QTimer()
         timer.timeout.connect(self.update_data)  # 定时调用plotData函数
-        timer.start(1)  # 多少ms调用一次
+        timer.start(60)  # 多少ms调用一次
         QtGui.QApplication.instance().exec_()

@@ -1,17 +1,19 @@
 import numpy as np  # 数据结构
 import sklearn.cluster as skc
+from sklearn.cluster import KMeans
 import math
 from height import Height
 
 
 class Cluster():
-	def __init__(self,eps,minpts,type,min_cluster_count):
+	def __init__(self,eps,minpts,type,min_cluster_count,cluster_snr_limit):
 		self.eps = eps
 		self.minpts = minpts
 		self.type = type
 		self.min_cluster_count = min_cluster_count
 		self.cluster_division_limit = 80  #达到80个点，对点云分割（分割失败保持原样）
 		self.frame_cluster_dict = {}
+		self.cluster_snr_limit = cluster_snr_limit
 		'''
 		frame_cluster_dict
 		{
@@ -49,6 +51,15 @@ class Cluster():
 			tem_dict.pop(-1)
 		except:
 			pass
+
+	def cluster_filter_by_snr_sum(self, tem_dict):
+		del_list = []
+		for i in tem_dict:
+			snr_sum = self.compute_cluster_sum_snr(tem_dict[i])
+			if snr_sum < self.cluster_snr_limit:
+				del_list.append(i)
+		for key in del_list:
+			tem_dict.pop(key)
 	
 	def cluster_filter_by_count(self, tem_dict, count):
 		#去除点数较少的类
@@ -75,11 +86,12 @@ class Cluster():
 			sum_snr += point[4]
 		return sum_snr
 
-	def get_remote_center_point(self, points, origin_center):
+	def get_center_point(self, points, origin_center, height):
+		#取身高下方0.2范围内的点计算x轴坐标，因为用整个人的点云计算x波动太大
 		center_point = []
 		range_points = []
 		for point in points:
-			if 1.4 < point[2] < 1.6:
+			if height-0.4 < point[2] < height:
 				range_points.append(point)
 		if len(range_points) > 0:
 			tem_center = np.mean(range_points, axis=0)
@@ -98,16 +110,12 @@ class Cluster():
 			cluster_dict['cluster_id'] = k
 			cluster_dict['points_num'] = len(tem_dict[i])
 			#cluster_dict['center_point'] = [center_point[0], center_point[1], center_point[2]]
-			if center_point[1] < 1:
-				cluster_dict['center_point'] = [center_point[0],center_point[1],center_point[2]]
-			else:
-				cluster_dict['center_point'] = self.get_remote_center_point(tem_dict[i], center_point)
-			print(center_point)
-			print(cluster_dict['center_point'])
+			cluster_dict['height'] = self.compute_cluster_height(tem_dict[i])
+			cluster_dict['center_point'] = self.get_center_point(tem_dict[i], center_point, cluster_dict['height'])
+			cluster_dict['dist'] = math.sqrt(cluster_dict['center_point'][0]**2 + cluster_dict['center_point'][1]**2)
 			cluster_dict['var_x'] = varlist[0]
 			cluster_dict['var_y'] = varlist[1]
 			cluster_dict['var_z'] = varlist[2]
-			cluster_dict['height'] = self.compute_cluster_height(tem_dict[i])
 			cluster_dict['points'] = tem_dict[i]
 			cluster_dict['length'], cluster_dict['width'] = self.compute_cluster_length_width(tem_dict[i])
 			cluster_dict['sum_snr'] = self.compute_cluster_sum_snr(tem_dict[i])
@@ -203,7 +211,109 @@ class Cluster():
 			tem_dict.pop(key)
 
 	def cluster_filter_by_snr(self, coefficient, tem_dict):
-		pass
+		#取snr前百分之多少的点（coefficient），来代表这个人
+		for i in tem_dict:
+			#print("过滤前", len(tem_dict[i]))
+			tem_dict[i].sort(key=lambda x: x[4], reverse=True)
+			end_index = math.ceil(len(tem_dict[i]) * coefficient)
+			tem_dict[i] = tem_dict[i][:end_index]
+			#print("过滤后", len(tem_dict[i]))
+
+	#开始聚类分割
+	def compute_cluster_people_count(self, tem_dict, threshold):
+		#求每个类对应的人数
+		cluster_people_num = {}  #求每个类对应的上一帧的人的id号，对应多个表示有多个类聚成一个
+		cluster_center_point_dict = {}  #求聚类中心点
+		for i in tem_dict:
+			center_point = np.mean(tem_dict[i], axis=0)
+			height = self.compute_cluster_height(tem_dict[i])
+			cluster_center_point_dict[i] = self.get_center_point(tem_dict[i], center_point, height)
+			cluster_people_num[i] = []
+		dist_person_to_cluster_list = []  #上一帧的人 和这一帧的聚类的对应关系
+
+		locations = {}
+		for cluster in self.frame_cluster_dict['cluster']:
+			locations[cluster['cluster_id']] = cluster['center_point']
+		#求上一帧的人，在这帧当中，距离人最近的那个类
+		for key in locations:
+			dist_person_to_cluster = {} #{person_id:id,min_dist_id:id,min_dist:dist}
+			min_dist = 1000
+			for i in cluster_center_point_dict:
+				dist_person_to_cluster['person_id'] = key
+				cluster_dist = math.sqrt((cluster_center_point_dict[i][0]-locations[key][0])**2 +
+											(cluster_center_point_dict[i][1]-locations[key][1])**2)
+				if cluster_dist < min_dist:
+					min_dist = cluster_dist
+					dist_person_to_cluster['min_dist_id'] = i
+					dist_person_to_cluster['min_dist'] = min_dist
+			if len(dist_person_to_cluster) != 0:
+				dist_person_to_cluster_list.append(dist_person_to_cluster)
+		#print("距离上一帧的人的最小距离",dist_person_to_cluster_list)
+		#如果距离人的距离小于阈值，那么就把这个人分配给对应的类
+		#print(dist_person_to_cluster_list)
+		for dist_person_to_cluster in dist_person_to_cluster_list:
+			if dist_person_to_cluster['min_dist'] < threshold:
+				cid = dist_person_to_cluster['min_dist_id']
+				cluster_people_num[cid].append(dist_person_to_cluster['person_id'])
+		return cluster_people_num
+
+	def satisfy_divide(self, person_ids, cluster):
+		#将聚类对应上一帧的人的点云合并，然后根据聚类点云和他对应的上一帧的人的总点云相似度，判断是否能分割
+		people_point_cloud = []
+		for pid in person_ids:
+			people_point_cloud += self.frame_cluster_dict['cluster'][pid]['points']
+
+		#聚类的点数应该大于其people_point_cloud的点数的80%,小于120%
+		if len(cluster) > 1.2*len(people_point_cloud) or len(cluster) < 0.8*len(people_point_cloud) :
+			return False
+
+		#聚类的中心点，应该和其对应人的中心点的距离不超过0.3
+		people_center_point = np.mean(people_point_cloud, axis=0)
+		cluster_center_point = np.mean(cluster, axis=0)
+		dist = math.sqrt((people_center_point[0]-cluster_center_point[0])**2 +
+					(people_center_point[1]-cluster_center_point[1])**2)
+		if dist > 0.2:
+			return False
+
+		#聚类的宽度和长度中，应该和对应人的长，宽类似
+		plength, pwidth = self.compute_cluster_length_width(people_point_cloud)
+		clength, cwidth = self.compute_cluster_length_width(cluster)
+
+		if abs(plength-clength) > 0.3 or abs(pwidth-cwidth) > 0.3:
+			return False
+
+		return True
+
+	def divide_cluster_by_people_count(self, tem_dict):
+		if len(self.frame_cluster_dict) < 2 or len(self.frame_cluster_dict['cluster']) == 0:
+			return
+		#对这一帧匹配了多个上一帧的类的聚类，进行判断，看是否满足是上一帧多个类的融合，如果满足
+		#将人数较多的类用kmeans分割
+		cluster_people_num = self.compute_cluster_people_count(tem_dict, 0.75)
+		#print(cluster_people_num)
+		max_id = -1
+		for i in tem_dict:
+			if i > max_id:
+				max_id = i
+		del_id = []
+		for i in cluster_people_num:
+			#if len(cluster_people_num[i]) > 1:
+			if len(cluster_people_num[i]) > 1 and self.satisfy_divide(cluster_people_num[i], tem_dict[i]):
+				print("帧号",self.frame_cluster_dict['frame_num'],"分割成功")
+				del_id.append(i)
+				X = np.array(tem_dict[i])
+				#print(X[:,:2])
+				#print(cluster_people_num[i])
+				tag = KMeans(len(cluster_people_num[i])).fit_predict(X[:, :2])
+				for j in range(len(tag)):
+					tag[j] += max_id + 1
+				divided_cluster = self.cluster_by_tag(tem_dict[i], tag)
+				for j in divided_cluster:
+					tem_dict[j] = divided_cluster[j]
+				max_id += len(divided_cluster)
+		for key in del_id:
+			tem_dict.pop(key)
+	#聚类分割结束
 
 	def points_to_cluster_by_tag(self, points, tag):
 		#将点云转换为人
@@ -216,6 +326,9 @@ class Cluster():
 		#过滤
 		#self.cluster_filter_by_count(tem_dict, self.min_cluster_count)
 		self.cluster_filter_by_count_and_distance(tem_dict)
+		self.cluster_filter_by_snr_sum(tem_dict)
+		self.cluster_filter_by_snr(0.8, tem_dict)
+		self.divide_cluster_by_people_count(tem_dict)
 		#tem_dict = sorted(tem_dict.items(), key = lambda x : x[0]) #按key排序
 		cluster_list = self.compute_cluster_attr(tem_dict)
 		return cluster_list
@@ -245,7 +358,9 @@ class Cluster():
 			print(cluster['cluster_id'],dopper_list)
 
 	def do_clsuter(self, frame_data):
+		#print("begin",self.locations)
 		self.frame_cluster_dict['frame_num'] = frame_data['frame_num']
+		#print(frame_data['frame_num'])
 		points = self.frame_data_to_cluster_points(frame_data)
 		tag = self.dbscan_official(points)
 		self.frame_cluster_dict['cluster'] = self.points_to_cluster_by_tag(points, tag)
