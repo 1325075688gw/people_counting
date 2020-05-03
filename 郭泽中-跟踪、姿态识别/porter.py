@@ -48,7 +48,7 @@ def analyze_data():
         heights=tracker.get_each_person_height()
         #raw_heights=tracker.get_each_person_raw_height()
 
-        common.loc_pos.put([locations,postures,tracker.get_cluster_num()])
+        common.loc_pos.put([locations,postures,tracker.get_cluster_num(),frame])
 
         for id in heights:
             kalman_heights.append(heights[id])

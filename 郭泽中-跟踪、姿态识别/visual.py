@@ -58,9 +58,9 @@ class ApplicationWindow(QWidget):
         if common.loc_pos.empty():
             return
 
-        locations,postures,cluster_num=common.loc_pos.get()
+        locations,postures,cluster_num,frame_num=common.loc_pos.get()
 
-        self.setWindowTitle('当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
+        self.setWindowTitle('第'+str(frame_num)+'帧，当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
 
         #删除已消失掉的人
         for person in self.people:

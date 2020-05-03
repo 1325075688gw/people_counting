@@ -91,7 +91,7 @@ class Multi_Kalman_Tracker():
         track_ids=list(self.tracks.keys())
 
         for i in ind:
-            if distance[i][ind[i]]<self.G+0.033*self.not_move_times[track_ids[i]]:
+            if distance[i][ind[i]]<self.G:
                 self.d[track_ids[i]]=ind[i]
 
     #使用匈牙利算法为预轨迹分配点
@@ -107,7 +107,7 @@ class Multi_Kalman_Tracker():
         track_ids=list(self.pre_tracks.keys())
 
         for i in ind:
-            if distance[i][ind[i]]<self.G+0.033*self.pre_not_detected_times[track_ids[i]]:
+            if distance[i][ind[i]]<self.G:
                 self.d[track_ids[i]]=ind[i]
 
     def update(self):
