@@ -59,9 +59,15 @@ class ApplicationWindow(QWidget):
         if common.queue_for_show_transfer.empty():
             return
 
+<<<<<<< HEAD
         locations,postures,cluster_num,frame_num=common.queue_for_show_transfer.get()
 
         self.setWindowTitle("当前第" + str(frame_num) +'当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
+=======
+        locations,postures,cluster_num,frame_num=common.loc_pos.get()
+
+        self.setWindowTitle('第'+str(frame_num)+'帧，当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
+>>>>>>> 6348efc... 针对现在点云可靠程度大大改善后的情况修改了跟踪算法
 
         #删除已消失掉的人
         for person in self.people:
