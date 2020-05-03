@@ -2,7 +2,9 @@ import sys
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
-from commo import cluster_show_queue
+sys.path.append(r"../龚伟-点云检测")
+
+from common import cluster_show_queue
 # sys.path.append("../")
 # sys.path.append("../src")
 from point_cloud import PointCloud
@@ -78,5 +80,5 @@ class ClusterWindow():
     def run(self):
         timer = pg.QtCore.QTimer()
         timer.timeout.connect(self.update_data)  # 定时调用plotData函数
-        timer.start(100)  # 多少ms调用一次
+        timer.start(1)  # 多少ms调用一次
         QtGui.QApplication.instance().exec_()

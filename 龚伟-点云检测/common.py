@@ -6,3 +6,4 @@ from queue import Queue
 
 queue_for_cluster_transfer = Queue()
 queue_for_show_transfer = Queue()
+cluster_show_queue = Queue()

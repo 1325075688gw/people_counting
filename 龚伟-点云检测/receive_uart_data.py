@@ -199,6 +199,7 @@ class UartParseSDK():
             self.json_data_transfer.update(frame_dict)
             common.queue_for_cluster_transfer.put(tempp)
 
+
     def show_frame(self):
         """
         先聚类，然后再可视化
@@ -210,6 +211,9 @@ class UartParseSDK():
 
         # show_2d = Thread(target=show_test.run_show_pointcloud)
         # show_2d.start()
+
+        cluster_show = Thread(target=analyze_radar_data.cluster_points)
+        cluster_show.start()
 
         mm = ClusterWindow(1200, 600)
         mm.run()
