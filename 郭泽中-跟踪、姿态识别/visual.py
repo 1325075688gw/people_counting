@@ -98,6 +98,7 @@ class ApplicationWindow(QWidget):
                 self.used_color_indexes.append(i)
                 return i
 
+
 def run(xmin,xmax,ymax):
     qapp = QtWidgets.QApplication(sys.argv)
     app = ApplicationWindow(xmin, xmax, ymax)
