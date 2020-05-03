@@ -1,8 +1,9 @@
 import numpy as np
-import math,time,random
+import math,sys
 from PyQt5.QtWidgets import QGridLayout,QWidget,QVBoxLayout,QMainWindow
 import common
 import pyqtgraph as pg
+from PyQt5 import QtWidgets
 
 class ApplicationWindow(QWidget):
 
@@ -96,3 +97,9 @@ class ApplicationWindow(QWidget):
             if i not in self.used_color_indexes:
                 self.used_color_indexes.append(i)
                 return i
+
+def run(xmin,xmax,ymax):
+    qapp = QtWidgets.QApplication(sys.argv)
+    app = ApplicationWindow(xmin, xmax, ymax)
+    app.show()
+    qapp.exec_()

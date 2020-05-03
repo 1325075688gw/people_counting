@@ -1,8 +1,6 @@
 from Kalman import Multi_Kalman_Tracker
 import numpy as np
-import json,math,time,sys
-from visual import ApplicationWindow
-from PyQt5 import QtWidgets
+import json,math
 import common
 
 detection_range=8
@@ -18,7 +16,7 @@ ymax=detection_range
 '''
 test
 '''
-filepath= 'data_5_1,1-7米随意走动，第五次/cart_transfer_data.json'
+filepath= 'data_5_2,1-7米随意走动，两个人，两个人都有坐立，第一次/cart_transfer_data.json'
 file=open(filepath)
 data=json.load(file)
 
@@ -27,10 +25,6 @@ tracker=Multi_Kalman_Tracker(G,min_in_last_times,min_out_last_times,M,rate,xmin,
 kalman_heights=[]
 cluster_heights=[]
 all_postures=[0,0,0,0,0]
-
-qapp=QtWidgets.QApplication(sys.argv)
-app=ApplicationWindow(xmin,xmax,ymax)
-app.show()
 
 for frame in data:
     point_list=data[frame]
@@ -66,4 +60,3 @@ print('方差:',np.std(kalman_heights))
 print('原始均值:',np.mean(cluster_heights),len(cluster_heights),'总帧数',len(data))
 print('原始方差:',np.std(cluster_heights))
 
-sys.exit(qapp.exec_())
