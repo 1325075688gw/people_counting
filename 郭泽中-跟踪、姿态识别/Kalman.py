@@ -87,12 +87,12 @@ class Multi_Kalman_Tracker():
         distance=self.cal_distance()
 
         #使用匈牙利算法为每条轨迹分配一个点
-        row_ind,col_ind=self.hungary(distance)
+        ind=self.assign_point_to_track_min_distance(distance)
         track_ids=list(self.tracks.keys())
 
-        for i in range(len(self.tracks)):
-            if col_ind[i]<len(self.clusters) and distance[i][col_ind[i]]<self.G+0.033*self.not_move_times[track_ids[i]]:
-                self.d[track_ids[i]]=col_ind[i]
+        for i in ind:
+            if distance[i][ind[i]]<self.G+0.033*self.not_move_times[track_ids[i]]:
+                self.d[track_ids[i]]=ind[i]
 
     #使用匈牙利算法为预轨迹分配点
     def pre_association(self):
@@ -103,12 +103,12 @@ class Multi_Kalman_Tracker():
         distance=self.cal_pre_distance()
 
         #使用匈牙利算法为每条轨迹分配一个点
-        row_ind,col_ind=self.hungary(distance)
+        ind=self.assign_point_to_track_min_distance(distance)
         track_ids=list(self.pre_tracks.keys())
 
-        for i in range(len(self.pre_tracks)):
-            if col_ind[i]<len(self.unused_clusters) and distance[i][col_ind[i]]<self.G+0.033*self.pre_not_detected_times[track_ids[i]]:
-                self.d[track_ids[i]]=col_ind[i]
+        for i in ind:
+            if distance[i][ind[i]]<self.G+0.033*self.pre_not_detected_times[track_ids[i]]:
+                self.d[track_ids[i]]=ind[i]
 
     def update(self):
         self.unused_clusters=[]
@@ -376,10 +376,10 @@ class Multi_Kalman_Tracker():
 
         return distance
 
-    def hungary(self,speedMatrix):
-        row = len(speedMatrix)
-        col = len(speedMatrix[0])
-        matrix = copy.copy(speedMatrix)
+    def assign_point_to_track(self,distanceMatrix):
+        row = len(distanceMatrix)
+        col = len(distanceMatrix[0])
+        matrix = copy.copy(distanceMatrix)
 
         while row != col:
             if row < col:
@@ -394,6 +394,33 @@ class Multi_Kalman_Tracker():
         row_ind, col_ind = linear_sum_assignment(matrix)
 
         return row_ind, col_ind
+
+    def assign_point_to_track_min_distance(self,distanceMatrix):
+        ind=dict()
+
+        if len(distanceMatrix)==0:
+            return ind
+
+        while True:
+            if len(ind)==len(distanceMatrix) or len(ind)==len(distanceMatrix[0]):
+                break
+            indexi=-1
+            indexj=-1
+            min_distance=float('inf')
+            for i in range(len(distanceMatrix)):
+                if i in ind:
+                    continue
+                for j in range(len(distanceMatrix[i])):
+                    if j in ind.values():
+                        continue
+                    if distanceMatrix[i][j]<=min_distance:
+                        min_distance=distanceMatrix[i][j]
+                        indexi=i
+                        indexj=j
+            if indexi!=-1 and indexj!=-1:
+                ind[indexi]=indexj
+
+        return ind
 
     #获得每个人的身高
     def get_each_person_height(self):
@@ -437,6 +464,16 @@ class Multi_Kalman_Tracker():
             location=track.get_location(6)
             if location is not None:
                 locations[track_id]=location
+
+        return locations
+
+    def get_each_person_current_frame_location(self):
+        locations=dict()
+
+        for track_id in self.tracks:
+            track=self.tracks[track_id]
+            location=track.points[-1]
+            locations[track_id]=location
 
         return locations
 

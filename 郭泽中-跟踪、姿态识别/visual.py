@@ -1,8 +1,10 @@
 import numpy as np
-import math,time,random
+import math,sys
 from PyQt5.QtWidgets import QGridLayout,QWidget,QVBoxLayout,QMainWindow
+sys.path.append(r"../龚伟-点云检测")
 import common
 import pyqtgraph as pg
+from PyQt5 import QtWidgets
 
 class ApplicationWindow(QWidget):
 
@@ -54,12 +56,12 @@ class ApplicationWindow(QWidget):
 
     #每一帧的显示
     def _update_canvas(self):
-        if common.loc_pos.empty():
+        if common.queue_for_show_transfer.empty():
             return
 
-        locations,postures,cluster_num=common.loc_pos.get()
+        locations,postures,cluster_num,frame_num=common.queue_for_show_transfer.get()
 
-        self.setWindowTitle('当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
+        self.setWindowTitle("当前第" + str(frame_num) +'当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
 
         #删除已消失掉的人
         for person in self.people:
@@ -79,7 +81,7 @@ class ApplicationWindow(QWidget):
 
             locs.append({'pos':locations[person],'brush':self.people[person]})
             text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
-            text.setPos(locations[person][0],locations[person][1])
+            text.setPos(locations[person][0]-0.16,locations[person][1]+0.1)
             self.texts.append(text)
             self.plt.addItem(text)
 
@@ -89,10 +91,16 @@ class ApplicationWindow(QWidget):
     def timer_start(self):
         self.timer = pg.Qt.QtCore.QTimer(self)
         self.timer.timeout.connect(self._update_canvas)
-        self.timer.start(33)
+        self.timer.start(1)
 
     def get_color_index(self):
         for i in range(20):
             if i not in self.used_color_indexes:
                 self.used_color_indexes.append(i)
                 return i
+
+def run(xmin,xmax,ymax):
+    qapp = QtWidgets.QApplication(sys.argv)
+    app = ApplicationWindow(xmin, xmax, ymax)
+    app.show()
+    qapp.exec_()

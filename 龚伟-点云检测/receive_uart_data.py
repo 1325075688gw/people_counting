@@ -12,12 +12,16 @@ from queue import Queue
 from copy import deepcopy
 
 sys.path.append(r"../杨家辉-点云聚类")
+sys.path.append(r"../郭泽中-跟踪、姿态识别")
 
+
+from visual import run
 import analyze_radar_data
 import common
 import show_test
 from qt_show import MainWindow
 from cluster_show import ClusterWindow
+
 
 queue_for_calculate_transfer = Queue()
 
@@ -187,17 +191,21 @@ class UartParseSDK():
                 point = Point(index + 1, value[0], value[1], value[2], value[3], value[4]).__dict__
                 point_cloud_list.append(point)
                 point_cloud_num += 1
-            tempp = dict()
+            temp = dict()
             t = time.time() * 1000
-            tempp["frame_num"] = self.frame_num
-            tempp["time_stamp"] = int(round(t))
-            tempp["point_num"] = point_cloud_num
-            tempp["point_list"] = point_cloud_list
+            if self.frame_num < 50:
+                continue
+
+            temp["frame_num"] = self.frame_num
+            temp["time_stamp"] = int(round(t))
+            temp["point_num"] = point_cloud_num
+            temp["point_list"] = point_cloud_list
             frame_num = "frame_num_" + str(self.frame_num)
-            frame_dict = {frame_num: tempp}
+            frame_dict = {frame_num: temp}
             print("frame_num:{0}".format(self.frame_num))
             self.json_data_transfer.update(frame_dict)
-            common.queue_for_cluster_transfer.put(tempp)
+            common.queue_for_cluster_transfer.put(temp)
+            # print("common:{0}".format(common.queue_for_cluster_transfer.qsize()))
 
 
     def show_frame(self):
@@ -212,11 +220,14 @@ class UartParseSDK():
         # show_2d = Thread(target=show_test.run_show_pointcloud)
         # show_2d.start()
 
+        # pass
         cluster_show = Thread(target=analyze_radar_data.cluster_points)
         cluster_show.start()
 
-        mm = ClusterWindow(1200, 600)
-        mm.run()
+        # mm = ClusterWindow(1200, 600)
+        # mm.run()
+
+        run(common.xmin, common.xmax, common.ymax)
 
     def cluster_points_thread(self):
         """
