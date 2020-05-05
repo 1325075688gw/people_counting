@@ -60,6 +60,7 @@ class ApplicationWindow(QWidget):
 
         locations,postures,cluster_num,frame_num=common.loc_pos.get()
 
+
         self.setWindowTitle('第'+str(frame_num)+'帧，当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
 
         #删除已消失掉的人
@@ -81,6 +82,7 @@ class ApplicationWindow(QWidget):
             locs.append({'pos':locations[person],'brush':self.people[person]})
             text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
             text.setPos(locations[person][0],locations[person][1])
+
             self.texts.append(text)
             self.plt.addItem(text)
 

@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 MAX_SAVE_FRAMES = 150  # 用于限制内存占用
 
@@ -145,7 +146,7 @@ class Track():
         self.P_ = []
         self.id=id
         self.s=s
-        self.P=P
+        self.P=copy.deepcopy(P)
         self.first_frame=frame
         self.points=[s]
         self.u=np.array([[0,0]])
@@ -189,8 +190,8 @@ class Track():
     def get_location(self,radius):
         if len(self.points)<self.M+1:
             return None
-        start=max(-len(self.points),int(-self.M*5/radius-1))
-        end=int(-self.M*3/radius)
+        start=max(-len(self.points),int(-self.M*float(radius+1)/radius-1))
+        end=int(-self.M*(radius-1)/radius+2)
         return np.array(self.points)[start:end].mean(axis=0)
 
     def get_height(self):
