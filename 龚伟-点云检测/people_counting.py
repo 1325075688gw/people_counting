@@ -187,8 +187,8 @@ class UartParseSDK():
         :return:None
         """
         while 1:
-            # if self.frame_num < 60:
-            #     continue
+            if self.frame_num < 70:
+                continue
             point_cloud_num = 0
             point_cloud_list = []
             polar = queue_for_calculate_polar.get().transpose()
@@ -479,5 +479,5 @@ if __name__ == "__main__":
     uartParseSDK.open_port()
     uartParseSDK.send_config()
     uartParseSDK.receive_data_thread().start()
-    uartParseSDK.put_queue_thread(0, r"./data/data_5_1,1-7米来回走，第二次", 200, 0 ).start()
+    uartParseSDK.put_queue_thread(0, r"./data/data_5_4,1-7米随意走，第2次", 1800, 0 ).start()
     uartParseSDK.show_frame()

@@ -49,13 +49,9 @@ for frame in data:
 
     common.queue_for_show_transfer.put([locations,postures,tracker.get_cluster_num()])
 
-<<<<<<< HEAD
     for id in heights:
         kalman_heights.append(heights[id])
         all_postures[postures[id]]+=1
-=======
-        common.loc_pos.put([locations,postures,tracker.get_cluster_num(),frame])
->>>>>>> 6348efc... 针对现在点云可靠程度大大改善后的情况修改了跟踪算法
 
 print(sum(all_postures))
 print([all_postures[i]/sum(all_postures) for i in range(1,5)])

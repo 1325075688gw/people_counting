@@ -185,8 +185,8 @@ class Multi_Kalman_Tracker():
                         self.not_move_times[self.max_id]=0
                         self.max_id += 1
 
-                        print('---------------------------')
-                        print('生成新轨迹！',self.frame)
+                        # print('---------------------------')
+                        # print('生成新轨迹！',self.frame)
                         print(self.not_move_times)
                         print(self.pre_not_detected_times)
 
@@ -277,8 +277,8 @@ class Multi_Kalman_Tracker():
                     self.not_move_times[self.max_id]=0
                     self.max_id += 1
 
-                    print('---------------------------')
-                    print('生成新轨迹！', self.frame)
+                    # print('---------------------------')
+                    # print('生成新轨迹！', self.frame)
                     print(self.not_move_times)
                     print(self.pre_not_detected_times)
 

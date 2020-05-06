@@ -5,6 +5,7 @@ import os
 import time
 import sys
 import serial
+import json
 
 from threading import Thread
 from collections import OrderedDict
@@ -207,6 +208,22 @@ class UartParseSDK():
             common.queue_for_cluster_transfer.put(temp)
             # print("common:{0}".format(common.queue_for_cluster_transfer.qsize()))
 
+            if self.frame_num == 1300:
+                path_dir = "./data/data_5_4,1-7米随意走，2人第5次，进门"
+                if not os.path.isdir(path_dir):
+                    print("创建文件夹：{0}".format(path_dir))
+                    os.makedirs(path_dir)
+                # file = open(path_dir + "/polar_data.json", "w")
+                # json.dump(self.json_data_polar, file)
+                # file.flush()
+                # file.close()
+                # print("极坐标数据写入完毕")
+
+                file = open(path_dir + "/cart_transfer_data.json", "w")
+                json.dump(self.json_data_transfer, file)
+                file.flush()
+                file.close()
+                print("转换坐标后的笛卡尔数据写入完毕")
 
     def show_frame(self):
         """

@@ -328,7 +328,7 @@ class Cluster():
 		self.cluster_filter_by_count_and_distance(tem_dict)
 		self.cluster_filter_by_snr_sum(tem_dict)
 		self.cluster_filter_by_snr(0.8, tem_dict)
-		self.divide_cluster_by_people_count(tem_dict)
+		# self.divide_cluster_by_people_count(tem_dict)
 		#tem_dict = sorted(tem_dict.items(), key = lambda x : x[0]) #按key排序
 		cluster_list = self.compute_cluster_attr(tem_dict)
 		return cluster_list
