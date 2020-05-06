@@ -1,6 +1,6 @@
 from Kalman import Multi_Kalman_Tracker
 import numpy as np
-import json,math,threading,sys
+import json,math,threading,sys,time
 import common
 from visual import ApplicationWindow
 from PyQt5 import QtWidgets
@@ -40,10 +40,17 @@ def analyze_data():
 
         common.loc_pos.put([locations,postures,tracker.get_frame()])
 
+    while True:
+        if common.loc_pos.empty():
+            common.stop_flag=True
+            break
+        time.sleep(1)
+
 
 if __name__=='__main__':
     thread=threading.Thread(target=analyze_data,args=())
-    thread.run()
+    thread.start()
+
     qapp = QtWidgets.QApplication(sys.argv)
     app = ApplicationWindow(xmin, xmax, ymax)
     app.show()

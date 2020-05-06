@@ -68,6 +68,15 @@ class ApplicationWindow(QWidget):
 
     #每一帧的显示
     def _update_canvas(self):
+        if common.stop_flag:
+            self.plt.removeItem(self.locations)
+            text=pg.TextItem(html='<div style="text-align: center"><span style="color: #000; font-size: 80pt;">录制结束!!!!</span></div>')
+            self.plt.addItem(text)
+            for each in self.texts:
+                self.plt.removeItem(each)
+            text.setPos(-4.5,5)
+            self.setWindowTitle('')
+
         if common.loc_pos.empty():
             return
 
@@ -105,7 +114,7 @@ class ApplicationWindow(QWidget):
     def timer_start(self):
         self.timer = pg.Qt.QtCore.QTimer(self)
         self.timer.timeout.connect(self._update_canvas)
-        self.timer.start(10)
+        self.timer.start(1)
 
     def get_color_index(self):
         for i in range(20):
