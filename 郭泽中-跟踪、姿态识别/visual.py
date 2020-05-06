@@ -1,6 +1,6 @@
 import numpy as np
 import math,sys
-from PyQt5.QtWidgets import QGridLayout,QWidget,QVBoxLayout,QMainWindow
+from PyQt5.QtWidgets import QGridLayout,QWidget,QApplication
 import common
 import pyqtgraph as pg
 from PyQt5 import QtWidgets
@@ -28,8 +28,21 @@ class ApplicationWindow(QWidget):
         self.timer_start()
 
     def initUI(self):
+        # 获取显示器分辨率大小
+        desktop=QApplication.desktop()
+        screenRect = desktop.screenGeometry()
+        screen_height = screenRect.height()
+        screen_width =screenRect.width()
 
-        self.setGeometry(200,200,1000,620)
+        x=screen_width/4
+        y=screen_height/20
+        width=screen_width*2/3
+        height=width*self.range/(self.xmax-self.xmin)
+
+        self.setGeometry(x,y,width,height)
+
+        # self.setGeometry(width/4,50,width*3/4,width*3/8*self.range/self.xmax)
+        # self.setGeometry(width/5,height/6,height*4/5*self.xmax*2/self.range,height*4/5)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
         self.plt=pg.PlotWidget()
