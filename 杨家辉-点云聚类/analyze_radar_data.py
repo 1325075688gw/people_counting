@@ -2,47 +2,44 @@ import sys
 import matplotlib.pyplot as plt
 import math
 import numpy as np
+import copy
 
 
 import show
 
 sys.path.append(r"../龚伟-点云检测")
 sys.path.append(r"../郭泽中-跟踪、姿态识别")
+from common import *
+
 
 from Kalman import Multi_Kalman_Tracker
 from cluster import Cluster
 from points_filter import Points_Filter
 
-import copy
-import common
-from common import cluster_show_queue
-
 
 def cluster_points():
-	print("fsssssssssssssxxxxxxxxxxxx")
 	"""
 	对点云进行过滤，聚类
 	:return: None
 	"""
-	tracker = Multi_Kalman_Tracker(common.G, common.min_in_last_times, common.min_out_last_times, common.M, common.rate, common.xmin, common.xmax, common.ymax)
-	p_filter = Points_Filter(z_min=-0.5, z_max=2.5, del_doppler=0, snr_limit=4)
-	cl = Cluster(eps=0.2, minpts=5, type='2D', min_cluster_count=30, cluster_snr_limit=88)
+	tracker = Multi_Kalman_Tracker(G, min_in_last_times, min_out_last_times, M, rate, xmin, xmax, ymax)
+	p_filter = Points_Filter(z_min=-0.5, z_max=2.5, del_doppler=0, snr_limit=0)
+	cl = Cluster(eps=0.25, minpts=5, type='2D', min_cluster_count=15, cluster_snr_limit=100)
+
 	while 1:
-		frame_data = common.queue_for_cluster_transfer.get()
+		frame_data = queue_for_cluster_transfer.get()
 		p_filter.run_filter(frame_data)
 		cl.do_clsuter(frame_data)
 		clusters_center = cl.get_cluster_center_point_list()
 		people_height_list = cl.get_height_list()
-		# frame_cluster_dict = copy.deepcopy(cl.frame_cluster_dict)
-		# cluster_show_queue.put(frame_cluster_dict)
+		frame_cluster_dict = copy.deepcopy(cl.frame_cluster_dict)
+		cluster_show_queue.put(frame_cluster_dict)
 		frame_num = frame_data["frame_num"]
 		tracker.nextFrame(clusters_center, people_height_list, frame_num)
-		# print("fffsssssssss")
 		locations = tracker.get_each_person_location()
 		postures = tracker.get_each_person_posture()
-		common.queue_for_show_transfer.put([locations, postures, tracker.get_cluster_num(), frame_num])
-		# print("common:{0}".format(common.queue_for_show_transfer.qsize))
-		# print("fffsxxxx")
+		#common.queue_for_show_transfer.put([frame_num, locations, postures])
+		loc_pos.put([locations, postures, tracker.get_frame()])
 
 
 def show_track():

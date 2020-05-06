@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 MAX_SAVE_FRAMES = 150  # 用于限制内存占用
 
@@ -72,12 +73,10 @@ class Height():
             mean1=np.mean(self.height[i-min_block_length:i])
             mean2=np.mean(self.height[i:i+min_block_length])
             if abs(mean1-mean2)>=sub_to_cut:
-                # mean_block_heights.append(np.mean(self.height[start:i]))
                 height_blocks.append(self.height[start:i])
                 start=i
             i+=min_block_length
 
-        # mean_block_heights.append(np.mean(self.height[start:]))
         height_blocks.append(self.height[start:])
 
         std=0.01
@@ -93,8 +92,6 @@ class Height():
             mean_block_heights.append(np.mean(self.height))
 
         self.real_height=np.max(mean_block_heights)
-
-        print('real_height:',self.real_height)
 
 class Posture():
 
@@ -145,7 +142,7 @@ class Track():
         self.P_ = []
         self.id=id
         self.s=s
-        self.P=P
+        self.P=copy.deepcopy(P)
         self.first_frame=frame
         self.points=[s]
         self.u=np.array([[0,0]])
@@ -189,8 +186,8 @@ class Track():
     def get_location(self,radius):
         if len(self.points)<self.M+1:
             return None
-        start=max(-len(self.points),int(-self.M*5/radius-1))
-        end=int(-self.M*3/radius)
+        start=max(-len(self.points),int(-self.M*float(radius+1)/radius-1))
+        end=int(-self.M*(radius-1)/radius+2)
         return np.array(self.points)[start:end].mean(axis=0)
 
     def get_height(self):

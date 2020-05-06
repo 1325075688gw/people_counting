@@ -26,7 +26,7 @@ import analyze_radar_data
 import common
 import show_test
 from qt_show import MainWindow
-from cluster_show import ClusterWindow
+# from cluster_show import ClusterWindow
 
 
 queue_for_calculate_polar = Queue()
@@ -168,7 +168,7 @@ class UartParseSDK():
         """
         global start_time
         start_time = time.time()/1000
-        while 1:
+        while not common.stop_flag:
             data = self.data_port.read(self.bytes_num)
             self.bytes_data += data
             self.bytes_data = self.get_frame(self.bytes_data)
@@ -186,8 +186,9 @@ class UartParseSDK():
         毫米波雷达采集数据，然后将数据push到队列中，供杨家辉调用
         :return:None
         """
-        while 1:
+        while not common.stop_flag:
             if self.frame_num < 70:
+                print("frame_num:{0}".format(self.frame_num))
                 continue
             point_cloud_num = 0
             point_cloud_list = []
@@ -234,18 +235,20 @@ class UartParseSDK():
                 if save_flag == 0:
                     if self.frame_num == frame_nums:
                         self.save_2_queue_flag = False
-                        cart_transfer_copy = deepcopy(self.json_data_polar)
+                        polar_copy = deepcopy(self.json_data_polar)
+                        cart_transfer_copy = deepcopy(self.json_data_cart_transfer)
                         self.json_data_polar.clear()
                         self.json_data_cart_transfer.clear()
-                        self.save_data_thread(cart_transfer_copy, save_path).start()
+                        self.save_data_thread(polar_copy, cart_transfer_copy, save_path).start()
                 elif save_flag == 1:
                     end_time = time.time()/1000
                     if end_time-start_time >= second:
                         self.save_2_queue_flag = False
-                        cart_transfer_copy = deepcopy(self.json_data_polar)
+                        polar_copy = deepcopy(self.json_data_polar)
+                        cart_transfer_copy = deepcopy(self.json_data_cart_transfer)
                         self.json_data_polar.clear()
                         self.json_data_cart_transfer.clear()
-                        self.save_data_thread(cart_transfer_copy, save_path).start()
+                        self.save_data_thread(polar_copy, cart_transfer_copy, save_path).start()
                 else:
                     raise Exception("参数设置错误，请设置0,或者1")
 
@@ -257,25 +260,28 @@ class UartParseSDK():
         _put_queue_th = Thread(target=self.put_queue_th, args=(save_flag, save_path, frame_nums, second))
         return _put_queue_th
 
-    def save_data_th(self, data, save_path):
+    def save_data_th(self, polar_data, cart_data, save_path):
         path_dir = save_path
+        common.stop_flag = True
         if not os.path.isdir(path_dir):
             print("创建文件夹：{0}".format(path_dir))
             os.makedirs(path_dir)
         file = open(path_dir + "/polar_data.json", "w")
-        json.dump(self.json_data_polar, file)
+        json.dump(polar_data, file)
         file.flush()
         file.close()
         print("极坐标数据写入完毕")
 
         file = open(path_dir + "/cart_transfer_data.json", "w")
-        json.dump(self.json_data_cart_transfer, file)
+        json.dump(cart_data, file)
         file.flush()
         file.close()
         print("转换坐标后的笛卡尔数据写入完毕")
 
-    def save_data_thread(self, data, save_path):
-        _save_data_thread = Thread(target=self.save_data_th, args = (data, save_path))
+        print("数据录制完成")
+
+    def save_data_thread(self, polar_data, cart_data, save_path):
+        _save_data_thread = Thread(target=self.save_data_th, args = (polar_data, cart_data, save_path))
         return _save_data_thread
 
     def show_frame(self):
@@ -479,5 +485,5 @@ if __name__ == "__main__":
     uartParseSDK.open_port()
     uartParseSDK.send_config()
     uartParseSDK.receive_data_thread().start()
-    uartParseSDK.put_queue_thread(0, r"./data/data_5_4,1-7米随意走，第2次", 1800, 0 ).start()
+    uartParseSDK.put_queue_thread(-1, r"./data/data_5_4,1-7米随意走，第10次", 200, 0 ).start()
     uartParseSDK.show_frame()

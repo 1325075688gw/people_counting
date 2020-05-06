@@ -14,14 +14,11 @@ class Multi_Kalman_Tracker():
         不会直接生成轨迹，而是先生成预轨迹，在满足一定条件后，将预轨迹转换为轨迹
     '''
 
-    cluster_nums=[]
-
     #初始化
     def __init__(self,G,min_in_last_times,min_out_last_times,M,rate,xmin,xmax,ymax):
-        self.measurementMatrix=np.array([[1, 0,], [0, 1]])    #H
         self.transitionMatrix=np.array([[1, 0], [0, 1]])  #状态转移矩阵
         self.processNoiseCov=np.array([[1, 0], [0, 1]]) * 0.03    #过程噪声矩阵
-        self.B=np.array([[10, 0], [0, 1]])    #B
+        self.B=np.array([[0.7, 0], [0, 0.7]])    #B
         self.d = dict()  # 存储当前帧中为轨迹分配的类
         self.tracks = dict()  # 所有轨迹
         self.pre_tracks=dict()
@@ -33,7 +30,7 @@ class Multi_Kalman_Tracker():
         self.unused_clusters=[]
         self.unused_heights=[]
 
-        self.frame = 0  # 当前帧号
+        self.frame = 49  # 当前帧号
         self.successive_times = 0  # 用于判断是否生成新轨迹
         self.plength = 2
         self.max_id=1
@@ -66,7 +63,7 @@ class Multi_Kalman_Tracker():
     def predict(self):
         for track_id in self.tracks:
             track=self.tracks[track_id]
-            start=max(0,len(track.u)-self.min_in_last_times)
+            start=max(0,int(len(track.u)-self.min_in_last_times/10))
             track.s_=np.matmul(self.transitionMatrix,track.s)+np.matmul(self.B,track.u[start:].mean(axis=0))
             track.P_=np.matmul(np.matmul(self.transitionMatrix,track.P),self.transitionMatrix.T)+self.processNoiseCov
 
@@ -74,7 +71,7 @@ class Multi_Kalman_Tracker():
     def pre_predict(self):
         for track_id in self.pre_tracks:
             track=self.pre_tracks[track_id]
-            start=max(0,len(track.u)-self.min_in_last_times)
+            start=max(0,int(len(track.u)-self.min_in_last_times/10))
             track.s_=np.matmul(self.transitionMatrix,track.s)+np.matmul(self.B,track.u[start:].mean(axis=0))
             track.P_=np.matmul(np.matmul(self.transitionMatrix,track.P),self.transitionMatrix.T)+self.processNoiseCov
 
@@ -86,7 +83,6 @@ class Multi_Kalman_Tracker():
 
         distance=self.cal_distance()
 
-        #使用匈牙利算法为每条轨迹分配一个点
         ind=self.assign_point_to_track_min_distance(distance)
         track_ids=list(self.tracks.keys())
 
@@ -102,7 +98,6 @@ class Multi_Kalman_Tracker():
 
         distance=self.cal_pre_distance()
 
-        #使用匈牙利算法为每条轨迹分配一个点
         ind=self.assign_point_to_track_min_distance(distance)
         track_ids=list(self.pre_tracks.keys())
 
@@ -119,13 +114,10 @@ class Multi_Kalman_Tracker():
 
         self.d=dict()
 
-        if len(self.pre_tracks)==0:
-            self.init_pre_tracks()
-        else:
-            self.pre_predict()
-            self.pre_association()
-            self.deal_unassigned_pre_tracks()
-            self.update_assigned_pre_tracks()
+        self.pre_predict()
+        self.pre_association()
+        self.deal_unassigned_pre_tracks()
+        self.update_assigned_pre_tracks()
 
     #更新未被分配到点的轨迹
     def update_unassigned_track(self,track_id):
@@ -155,10 +147,7 @@ class Multi_Kalman_Tracker():
                         self.update_unassigned_track(track_id)
                 else:
                     self.not_move_times[track_id]+=1
-                    if self.not_detected_times[track_id]>self.min_out_last_times*1.5:
-                        to_be_deleted.append(track_id)
-                    else:
-                        self.update_unassigned_track(track_id)
+                    self.update_unassigned_track(track_id)
             else:
                 self.not_detected_times[track_id]=max(0,self.not_detected_times[track_id]-1)
                 self.not_move_times[track_id]=max(0,self.not_move_times[track_id]-1.5)
@@ -184,11 +173,6 @@ class Multi_Kalman_Tracker():
                         self.not_detected_times[self.max_id] = 0
                         self.not_move_times[self.max_id]=0
                         self.max_id += 1
-
-                        # print('---------------------------')
-                        # print('生成新轨迹！',self.frame)
-                        print(self.not_move_times)
-                        print(self.pre_not_detected_times)
 
         for track_id in to_be_deleted:
             self.delete_pre_track(track_id)
@@ -230,9 +214,6 @@ class Multi_Kalman_Tracker():
 
             # 为当前点计算速度(只考虑xy方向的)
             track.add_frame(track.s,track.s-track.points[-1],self.heights[cluster_id])
-        #track_update end
-
-        #处理当前帧未被处理的点
 
         for j in range(len(self.clusters)):
             if j not in used_clusters:
@@ -277,21 +258,14 @@ class Multi_Kalman_Tracker():
                     self.not_move_times[self.max_id]=0
                     self.max_id += 1
 
-                    # print('---------------------------')
-                    # print('生成新轨迹！', self.frame)
-                    print(self.not_move_times)
-                    print(self.pre_not_detected_times)
-
         for track_id in to_be_deleted:
             self.delete_pre_track(track_id)
-        #track_update end
 
         #处理当前帧未被处理的点
         for j in range(len(self.unused_clusters)):
             if j in used_clusters:
                 continue
-            if self.is_at_edge(self.unused_clusters[j]):
-                self.init_pre_track(self.unused_clusters[j],self.unused_heights[j])
+            self.init_pre_track(self.unused_clusters[j],self.unused_heights[j])
 
     #输入下一帧数据进行计算
     def nextFrame(self,clusters,heights,frame):
@@ -305,9 +279,6 @@ class Multi_Kalman_Tracker():
         self.predict()
         self.association()
         self.update()
-
-        #保存当前帧过滤后的聚类点
-        self.cluster_nums.append(len(self.clusters))
 
     #判断轨迹是否位于边缘
     def is_at_edge(self,s):
@@ -353,7 +324,7 @@ class Multi_Kalman_Tracker():
             track = self.tracks[track_id]
             row = np.array([])
             for j in range(len(self.clusters)):
-                row = np.append(row, [np.linalg.norm(self.clusters[j] - track.s_)], axis=0)
+                row = np.append(row, [np.linalg.norm(self.clusters[j] - track.s_)*0.8+0.2*(track.height.height[-1]-self.heights[j])], axis=0)
             if distance.size == 0:
                 distance = np.array([row])
             else:
@@ -368,7 +339,7 @@ class Multi_Kalman_Tracker():
             track = self.pre_tracks[track_id]
             row = np.array([])
             for j in range(len(self.unused_clusters)):
-                row = np.append(row, [np.linalg.norm(self.unused_clusters[j] - track.s_)], axis=0)
+                row = np.append(row, [np.linalg.norm(self.unused_clusters[j] - track.s_)*0.8+0.2*(track.height.height[-1]-self.unused_heights[j])], axis=0)
             if distance.size == 0:
                 distance = np.array([row])
             else:
@@ -461,7 +432,7 @@ class Multi_Kalman_Tracker():
 
         for track_id in self.tracks:
             track=self.tracks[track_id]
-            location=track.get_location(6)
+            location=track.get_location(self.M)
             if location is not None:
                 locations[track_id]=location
 
@@ -500,9 +471,7 @@ class Multi_Kalman_Tracker():
 
         return raw_height
 
-    #获得倒数第M+1帧的聚类个数
-    def get_cluster_num(self):
-        if len(self.cluster_nums)<self.M+1:
-            return 0
-        else:
-            return self.cluster_nums[-self.M-1]
+    def get_frame(self):
+        if self.frame<49+self.M:
+            return 49
+        return self.frame-self.M

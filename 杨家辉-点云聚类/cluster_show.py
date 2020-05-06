@@ -2,10 +2,14 @@ import sys
 from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
-# from commo import cluster_show_queue
-# from commo import point_cloud_show_queue
-sys.path.append("../")
-sys.path.append("../src")
+
+sys.path.append(r"../杨家辉-点云聚类")
+sys.path.append(r"../郭泽中-跟踪、姿态识别")
+
+
+from common import cluster_show_queue
+from common import point_cloud_show_queue
+
 from point_cloud import PointCloud
 
 class ClusterWindow():

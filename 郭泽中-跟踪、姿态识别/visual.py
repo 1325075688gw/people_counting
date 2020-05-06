@@ -1,7 +1,6 @@
 import numpy as np
 import math,sys
-from PyQt5.QtWidgets import QGridLayout,QWidget,QVBoxLayout,QMainWindow
-sys.path.append(r"../龚伟-点云检测")
+from PyQt5.QtWidgets import QGridLayout,QWidget,QApplication
 import common
 import pyqtgraph as pg
 from PyQt5 import QtWidgets
@@ -29,8 +28,21 @@ class ApplicationWindow(QWidget):
         self.timer_start()
 
     def initUI(self):
+        # 获取显示器分辨率大小
+        desktop=QApplication.desktop()
+        screenRect = desktop.screenGeometry()
+        screen_height = screenRect.height()
+        screen_width =screenRect.width()
 
-        self.setGeometry(200,200,1000,620)
+        x=screen_width/4
+        y=screen_height/20
+        width=screen_width*2/3
+        height=width*self.range/(self.xmax-self.xmin)
+
+        self.setGeometry(x,y,width,height)
+
+        # self.setGeometry(width/4,50,width*3/4,width*3/8*self.range/self.xmax)
+        # self.setGeometry(width/5,height/6,height*4/5*self.xmax*2/self.range,height*4/5)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
         self.plt=pg.PlotWidget()
@@ -40,7 +52,7 @@ class ApplicationWindow(QWidget):
 
         self.paintBorder()
 
-        self.locations = pg.ScatterPlotItem(size=50)
+        self.locations = pg.ScatterPlotItem(size=40)
         self.plt.addItem(self.locations)
         self.texts=[]
 
@@ -56,13 +68,22 @@ class ApplicationWindow(QWidget):
 
     #每一帧的显示
     def _update_canvas(self):
-        if common.queue_for_show_transfer.empty():
+        if common.stop_flag:
+            self.plt.removeItem(self.locations)
+            text=pg.TextItem(html='<div style="text-align: center"><span style="color: #000; font-size: 80pt;">录制结束!!!!</span></div>')
+            self.plt.addItem(text)
+            for each in self.texts:
+                self.plt.removeItem(each)
+            text.setPos(-4.5,5)
+            self.setWindowTitle('')
+
+        if common.loc_pos.empty():
             return
 
+        locations,postures,frame_num=common.loc_pos.get()
 
-        locations,postures,cluster_num,frame_num=common.queue_for_show_transfer.get()
 
-        self.setWindowTitle('第'+str(frame_num)+'帧，当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
+        self.setWindowTitle('当前帧有'+str(len(locations))+'个人')
 
         #删除已消失掉的人
         for person in self.people:
@@ -82,7 +103,8 @@ class ApplicationWindow(QWidget):
 
             locs.append({'pos':locations[person],'brush':self.people[person]})
             text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
-            text.setPos(locations[person][0]-0.16,locations[person][1]+0.1)
+            text.setPos(locations[person][0]-0.25,locations[person][1]+0.18)
+
             self.texts.append(text)
             self.plt.addItem(text)
 
@@ -99,6 +121,7 @@ class ApplicationWindow(QWidget):
             if i not in self.used_color_indexes:
                 self.used_color_indexes.append(i)
                 return i
+
 
 def run(xmin,xmax,ymax):
     qapp = QtWidgets.QApplication(sys.argv)
