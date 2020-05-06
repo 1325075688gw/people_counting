@@ -73,12 +73,10 @@ class Height():
             mean1=np.mean(self.height[i-min_block_length:i])
             mean2=np.mean(self.height[i:i+min_block_length])
             if abs(mean1-mean2)>=sub_to_cut:
-                # mean_block_heights.append(np.mean(self.height[start:i]))
                 height_blocks.append(self.height[start:i])
                 start=i
             i+=min_block_length
 
-        # mean_block_heights.append(np.mean(self.height[start:]))
         height_blocks.append(self.height[start:])
 
         std=0.01
@@ -94,8 +92,6 @@ class Height():
             mean_block_heights.append(np.mean(self.height))
 
         self.real_height=np.max(mean_block_heights)
-
-        print('real_height:',self.real_height)
 
 class Posture():
 

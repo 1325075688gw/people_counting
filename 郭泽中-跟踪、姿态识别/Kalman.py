@@ -14,14 +14,11 @@ class Multi_Kalman_Tracker():
         不会直接生成轨迹，而是先生成预轨迹，在满足一定条件后，将预轨迹转换为轨迹
     '''
 
-    cluster_nums=[]
-    ds=dict()
-
     #初始化
     def __init__(self,G,min_in_last_times,min_out_last_times,M,rate,xmin,xmax,ymax):
         self.transitionMatrix=np.array([[1, 0], [0, 1]])  #状态转移矩阵
         self.processNoiseCov=np.array([[1, 0], [0, 1]]) * 0.03    #过程噪声矩阵
-        self.B=np.array([[1, 0], [0, 1]])    #B
+        self.B=np.array([[0.7, 0], [0, 0.7]])    #B
         self.d = dict()  # 存储当前帧中为轨迹分配的类
         self.tracks = dict()  # 所有轨迹
         self.pre_tracks=dict()
@@ -53,7 +50,6 @@ class Multi_Kalman_Tracker():
     '''
     def init_pre_tracks(self):
         for i in range(len(self.unused_clusters)):
-            # if self.is_at_edge(self.unused_clusters[i]):
             self.init_pre_track(self.unused_clusters[i],self.unused_heights[i])
 
     #根据给定位置与身高初始化预轨迹
@@ -61,7 +57,6 @@ class Multi_Kalman_Tracker():
         track=Track(self.pre_max_id,s,self.processNoiseCov,self.frame,height,self.M)
         self.pre_tracks[self.pre_max_id]=track
         self.pre_not_detected_times[self.pre_max_id]=0
-        print('new_pretrack_created!track id:',self.pre_max_id,'current frame:',self.frame,'height:',height,'location:',s)
         self.pre_max_id+=1
 
     #预测每一条轨迹在下一帧中的位置
@@ -88,32 +83,12 @@ class Multi_Kalman_Tracker():
 
         distance=self.cal_distance()
 
-        #使用匈牙利算法为每条轨迹分配一个点
-        row_ind,col_ind=self.assign_point_to_track(distance)
         ind=self.assign_point_to_track_min_distance(distance)
         track_ids=list(self.tracks.keys())
-
-        #for test
-        self.ds[self.frame]=dict()
-        if_print=False
-        #for test end
 
         for i in ind:
             if distance[i][ind[i]]<self.G:
                 self.d[track_ids[i]]=ind[i]
-
-        # for i in range(len(self.tracks)):
-        #     if col_ind[i] < len(self.clusters) and distance[i][col_ind[i]] < self.G:
-        #         self.d[track_ids[i]] = col_ind[i]
-        #for test
-            # else:
-            #     track_id=track_ids[i]
-            #     cluster_id=ind[i]
-            #     print('[current frame:',self.frame,self.tracks[track_id].s_,self.clusters[cluster_id],distance[i][cluster_id],end='],')
-            #     if_print=True
-        if if_print:
-            print()
-        #for test end
 
     #使用匈牙利算法为预轨迹分配点
     def pre_association(self):
@@ -123,18 +98,12 @@ class Multi_Kalman_Tracker():
 
         distance=self.cal_pre_distance()
 
-        #使用匈牙利算法为每条轨迹分配一个点
-        row_ind,col_ind=self.assign_point_to_track(distance)
         ind=self.assign_point_to_track_min_distance(distance)
         track_ids=list(self.pre_tracks.keys())
 
         for i in ind:
             if distance[i][ind[i]]<self.G:
                 self.d[track_ids[i]]=ind[i]
-
-        # for i in range(len(self.pre_tracks)):
-        #     if col_ind[i] < len(self.unused_clusters) and distance[i][col_ind[i]] < self.G:
-        #         self.d[track_ids[i]] = col_ind[i]
 
     def update(self):
         self.unused_clusters=[]
@@ -205,11 +174,6 @@ class Multi_Kalman_Tracker():
                         self.not_move_times[self.max_id]=0
                         self.max_id += 1
 
-                        print('---------------------------')
-                        print('生成新轨迹！当前帧号:',self.frame,'转正预轨迹：',track_id)
-                        print(self.not_move_times)
-                        print(self.pre_not_detected_times)
-
         for track_id in to_be_deleted:
             self.delete_pre_track(track_id)
 
@@ -220,7 +184,6 @@ class Multi_Kalman_Tracker():
 
     #删除指定预轨迹
     def delete_pre_track(self,track_id):
-        print('pre track deleted,pre track id:',track_id)
         del self.pre_tracks[track_id]
         del self.pre_not_detected_times[track_id]
 
@@ -243,7 +206,6 @@ class Multi_Kalman_Tracker():
 
             K=np.matmul(track.P_,np.linalg.inv(track.P_+self.processNoiseCov))
             track.s=track.s_+np.matmul(K,self.clusters[cluster_id]-track.s_)
-            # track.s=self.clusters[cluster_id]
             track.P=np.matmul(np.mat(np.identity(self.plength))-K,track.P_)
 
             #解决numpy中矩阵与向量相乘导致向量本来应该是x，变成[x]
@@ -278,7 +240,6 @@ class Multi_Kalman_Tracker():
 
             K=np.matmul(track.P_,np.linalg.inv(track.P_+self.processNoiseCov))
             track.s=track.s_+np.matmul(K,self.unused_clusters[cluster_id]-track.s_)
-            # track.s=self.unused_clusters[cluster_id]
             track.P=np.matmul(np.mat(np.identity(self.plength))-K,track.P_)
 
             #解决numpy中矩阵与向量相乘导致向量本来应该是x，变成[x]
@@ -297,20 +258,13 @@ class Multi_Kalman_Tracker():
                     self.not_move_times[self.max_id]=0
                     self.max_id += 1
 
-                    print('---------------------------')
-                    print('生成新轨迹！当前帧:', self.frame,'转正预轨迹:',track_id)
-                    print(self.not_move_times)
-                    print(self.pre_not_detected_times)
-
         for track_id in to_be_deleted:
             self.delete_pre_track(track_id)
-        #track_update end
 
         #处理当前帧未被处理的点
         for j in range(len(self.unused_clusters)):
             if j in used_clusters:
                 continue
-            # if self.is_at_edge(self.unused_clusters[j]):
             self.init_pre_track(self.unused_clusters[j],self.unused_heights[j])
 
     #输入下一帧数据进行计算
@@ -325,9 +279,6 @@ class Multi_Kalman_Tracker():
         self.predict()
         self.association()
         self.update()
-
-        #保存当前帧过滤后的聚类点
-        self.cluster_nums.append(len(self.clusters))
 
     #判断轨迹是否位于边缘
     def is_at_edge(self,s):
@@ -519,18 +470,6 @@ class Multi_Kalman_Tracker():
                 raw_height[track_id]=round(track.height.origin_height[-1-self.M],2)
 
         return raw_height
-
-    def get_assignment(self):
-        if self.frame-self.M+1 not in self.ds:
-            return dict()
-        return self.ds[self.frame-self.M+1]
-
-    #获得倒数第M+1帧的聚类个数
-    def get_cluster_num(self):
-        if len(self.cluster_nums)<self.M+1:
-            return 0
-        else:
-            return self.cluster_nums[-self.M-1]
 
     def get_frame(self):
         if self.frame<49+self.M:

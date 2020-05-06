@@ -39,7 +39,7 @@ class ApplicationWindow(QWidget):
 
         self.paintBorder()
 
-        self.locations = pg.ScatterPlotItem(size=50)
+        self.locations = pg.ScatterPlotItem(size=40)
         self.plt.addItem(self.locations)
         self.texts=[]
 
@@ -58,10 +58,10 @@ class ApplicationWindow(QWidget):
         if common.loc_pos.empty():
             return
 
-        locations,postures,cluster_num,frame_num=common.loc_pos.get()
+        locations,postures,frame_num=common.loc_pos.get()
 
 
-        self.setWindowTitle('第'+str(frame_num)+'帧，当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
+        self.setWindowTitle('当前帧有'+str(len(locations))+'个人')
 
         #删除已消失掉的人
         for person in self.people:
@@ -81,7 +81,7 @@ class ApplicationWindow(QWidget):
 
             locs.append({'pos':locations[person],'brush':self.people[person]})
             text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
-            text.setPos(locations[person][0],locations[person][1])
+            text.setPos(locations[person][0]-0.25,locations[person][1]+0.18)
 
             self.texts.append(text)
             self.plt.addItem(text)
@@ -92,7 +92,7 @@ class ApplicationWindow(QWidget):
     def timer_start(self):
         self.timer = pg.Qt.QtCore.QTimer(self)
         self.timer.timeout.connect(self._update_canvas)
-        self.timer.start(33)
+        self.timer.start(10)
 
     def get_color_index(self):
         for i in range(20):
