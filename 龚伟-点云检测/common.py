@@ -10,6 +10,8 @@ queue_for_show_transfer = Queue()
 cluster_show_queue = Queue()
 loc_pos = Queue()
 
+point_cloud_show_queue = Queue()
+
 detection_range=8
 xmin=-detection_range/2*math.sqrt(3)
 xmax=detection_range/2*math.sqrt(3)

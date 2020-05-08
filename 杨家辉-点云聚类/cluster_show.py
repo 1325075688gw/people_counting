@@ -15,6 +15,8 @@ from point_cloud import PointCloud
 class ClusterWindow():
 
     def __init__(self, x_range, y_range):
+        print("oooooooooooofsdfvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        print("oooooooooooofsdfvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
         self.app = QtGui.QApplication([])
         self.mw = QtGui.QMainWindow()
         self.mw.resize(x_range, y_range)
@@ -23,6 +25,12 @@ class ClusterWindow():
         self.mw.setCentralWidget(self.view)
         self.mw.show()
         self.mw.setWindowTitle('Show Cluster')
+        print("oooooooooooofsdfvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        print("oooooooooooofsdfvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        print("oooooooooooofsdfvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        print("oooooooooooofsdfvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        print("oooooooooooofsdfvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        print("oooooooooooofsdfvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
 
         #绘制聚类效果图
         self.cluster_plot = self.view.addPlot() #cluster_show
@@ -46,14 +54,17 @@ class ClusterWindow():
     def update_data(self):
 
         #更新聚类数据
+        print("vvvvvvvvvvv")
         point_cloud = []
         for text_item in self.snr_texts_item:
             text_item.setText("")
+        print("fssssssssssqqqqqqqqqqqqqsss")
         if point_cloud_show_queue.empty() or cluster_show_queue.empty():
             return
-
+        print("fsssssssssssss")
         if not cluster_show_queue.empty():
             cluster_data = cluster_show_queue.get()
+            print("dddff:{0}".format(cluster_data))
             points_spots = []
             people_spots = []
             for cluster in cluster_data['cluster']:
@@ -84,6 +95,7 @@ class ClusterWindow():
 
     def run(self):
         timer = pg.QtCore.QTimer()
+        print("vgcvvvvv")
         timer.timeout.connect(self.update_data)  # 定时调用plotData函数
-        timer.start(60)  # 多少ms调用一次
+        timer.start(1)  # 多少ms调用一次
         QtGui.QApplication.instance().exec_()

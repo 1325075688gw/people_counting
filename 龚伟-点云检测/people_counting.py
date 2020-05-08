@@ -26,7 +26,7 @@ import analyze_radar_data
 import common
 import show_test
 from qt_show import MainWindow
-# from cluster_show import ClusterWindow
+from cluster_show import ClusterWindow
 
 
 queue_for_calculate_polar = Queue()
@@ -299,11 +299,13 @@ class UartParseSDK():
         # pass
         cluster_show = Thread(target=analyze_radar_data.cluster_points)
         cluster_show.start()
+        #
+        # cw = ClusterWindow(1200, 600)
+        # cw.run()
 
-        # mm = ClusterWindow(1200, 600)
-        # mm.run()
-
-        run(common.xmin, common.xmax, common.ymax)
+        mw = MainWindow(1200, 600)
+        mw.run()
+        # run(common.xmin, common.xmax, common.ymax)
 
     def cluster_points_thread(self):
         """
@@ -481,9 +483,9 @@ class UartParseSDK():
 
 if __name__ == "__main__":
     # 数据串口, 用户串口, 雷达高度, 雷达倾角
-    uartParseSDK = UartParseSDK("COM4", "COM3", "./ODS_6m_default.cfg", 2.10, 17)
+    uartParseSDK = UartParseSDK("COM4", "COM3", "./ODS_6m_default.cfg", 2.13, 7)
     uartParseSDK.open_port()
     uartParseSDK.send_config()
     uartParseSDK.receive_data_thread().start()
-    uartParseSDK.put_queue_thread(-1, r"./data/data_5_4,1-7米随意走，第10次", 200, 0 ).start()
+    uartParseSDK.put_queue_thread(-1, r"./data/data_5_7,1-7米随意走，第1次", 1000, 0 ).start()
     uartParseSDK.show_frame()

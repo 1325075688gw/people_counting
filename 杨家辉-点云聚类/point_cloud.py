@@ -1,6 +1,6 @@
 import sys
-import common
 sys.path.append(r"../龚伟-点云检测")
+import common
 # sys.path.append(r"../") #for me
 # import commo #for me
 
@@ -27,12 +27,13 @@ class PointCloud():
     @staticmethod
     def get_frame_pointcloud(pointcloud, dofilter):
         if common.queue_for_cluster_transfer.empty():
-            return False
+            return -1, False
         frame_data = common.queue_for_cluster_transfer.get()
+        frame_num = frame_data["frame_num"]
         pointcloud[:] = PointCloud.framedata_to_pointcloud(frame_data)
         if dofilter:
             pointcloud[:] = PointCloud.doppler_filter(pointcloud)
-        return True
+        return frame_num, True
 
 
 ### for me test

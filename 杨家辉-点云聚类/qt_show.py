@@ -23,7 +23,9 @@ class MainWindow():
 
     def update_data(self):
         point_cloud = []
-        if PointCloud.get_frame_pointcloud(point_cloud, True):
+        frame_num, flag = PointCloud.get_frame_pointcloud(point_cloud, True)
+        if flag:
+            self.setWindowTitle('当前第：{0}帧'.format(frame_num))
             spots1 = [{'pos': np.array(point)} for point in point_cloud]
             spots2 = [{'pos': np.array([point[1], point[2]])} for point in point_cloud]
             self.scatter2.setData(spots2)

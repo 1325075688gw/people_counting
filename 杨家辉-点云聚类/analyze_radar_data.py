@@ -28,6 +28,8 @@ def cluster_points():
 
 	while 1:
 		frame_data = queue_for_cluster_transfer.get()
+		fd = copy.deepcopy(frame_data)
+		point_cloud_show_queue.put(fd)
 		p_filter.run_filter(frame_data)
 		cl.do_clsuter(frame_data)
 		clusters_center = cl.get_cluster_center_point_list()
