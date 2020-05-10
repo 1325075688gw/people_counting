@@ -15,6 +15,12 @@ class Cluster():
 		self.cluster_division_limit = 80  #达到80个点，对点云分割（分割失败保持原样）
 		self.frame_cluster_dict = {}
 		self.cluster_snr_limit = cluster_snr_limit
+		self.history_people_center_point_data = []
+		self.history_data_length = 5
+
+		#多帧融合
+		self.mix_frame_num = 5
+		self.frame_data_list = []  #[{"frame_num":1,"points":[]},..]
 		'''
 		frame_cluster_dict
 		{
@@ -87,8 +93,12 @@ class Cluster():
 			sum_snr += point[4]
 		return sum_snr
 
-	def get_center_point(self, points, origin_center, height):
-		#取身高下方0.2范围内的点计算x轴坐标，因为用整个人的点云计算x波动太大
+	def get_center_point(self, points):
+		#取snr前10%的点计算点云中心
+		k = int(len(points) * 0.1) + 1 #计算前10%点
+		points.sort(key=lambda x: x[4], reverse=True)
+		topsnr_points = [points[i] for i in range(k)]
+		center_point = np.mean(points, axis=0)
 		# center_point = []
 		# range_points = []
 		# for point in points:
@@ -98,8 +108,7 @@ class Cluster():
 		# 	tem_center = np.mean(range_points, axis=0)
 		# 	center_point = [tem_center[0], tem_center[1], origin_center[2]]
 		# else:
-		center_point = [origin_center[0], origin_center[1], origin_center[2]]
-		return center_point
+		return [center_point[0],center_point[1],center_point[2]]
 
 	def compute_cluster_attr(self, tem_dict):
 		cluster_list = []
@@ -112,7 +121,7 @@ class Cluster():
 			cluster_dict['points_num'] = len(tem_dict[i])
 			#cluster_dict['center_point'] = [center_point[0], center_point[1], center_point[2]]
 			cluster_dict['height'] = self.compute_cluster_height(tem_dict[i])
-			cluster_dict['center_point'] = self.get_center_point(tem_dict[i], center_point, cluster_dict['height'])
+			cluster_dict['center_point'] = self.get_center_point(tem_dict[i])
 			cluster_dict['dist'] = math.sqrt(cluster_dict['center_point'][0]**2 + cluster_dict['center_point'][1]**2)
 			cluster_dict['var_x'] = varlist[0]
 			cluster_dict['var_y'] = varlist[1]
@@ -226,9 +235,7 @@ class Cluster():
 		cluster_people_num = {}  #求每个类对应的上一帧的人的id号，对应多个表示有多个类聚成一个
 		cluster_center_point_dict = {}  #求聚类中心点
 		for i in tem_dict:
-			center_point = np.mean(tem_dict[i], axis=0)
-			height = self.compute_cluster_height(tem_dict[i])
-			cluster_center_point_dict[i] = self.get_center_point(tem_dict[i], center_point, height)
+			cluster_center_point_dict[i] = self.get_center_point(tem_dict[i])
 			cluster_people_num[i] = []
 		dist_person_to_cluster_list = []  #上一帧的人 和这一帧的聚类的对应关系
 
@@ -286,7 +293,7 @@ class Cluster():
 		plength, pwidth, pheight = self.compute_cluster_length_width_height(people_point_cloud)
 		clength, cwidth, pheight = self.compute_cluster_length_width_height(cluster)
 		#print("长：",abs(plength-clength),"宽：",abs(pwidth-cwidth))
-		if abs(plength-clength) > 0.6 or abs(pwidth-cwidth) > 0.5:
+		if abs(plength-clength) > 0.5 or abs(pwidth-cwidth) > 0.3:
 			print("不满足长宽要求，无法分割")
 			return False
 
@@ -295,7 +302,18 @@ class Cluster():
 			return False
 		return True
 
+	def divide_cluster_by_kmeans(self, k, points, origin_cluster_dict, max_id):
+		#将kmeans得到的聚类，按照max_id+1进行编号，存入origin_cluster_dict当中
+		X = np.array(points)
+		tag = KMeans(k).fit_predict(X[:, :2])
+		for j in range(len(tag)):
+			tag[j] += max_id + 1
+		divided_cluster = self.cluster_by_tag(points, tag)
+		for j in divided_cluster:
+			origin_cluster_dict[j] = divided_cluster[j]
+
 	def divide_cluster_by_people_count(self, tem_dict):
+		do_divide_flag = False
 		if len(self.frame_cluster_dict) < 2 or len(self.frame_cluster_dict['cluster']) == 0:
 			return
 		#对这一帧匹配了多个上一帧的类的聚类，进行判断，看是否满足是上一帧多个类的融合，如果满足
@@ -313,22 +331,14 @@ class Cluster():
 				print("帧号", self.frame_cluster_dict['frame_num'], "准备分割")
 			if len(cluster_people_num[i]) > 1 and self.satisfy_divide(cluster_people_num[i], tem_dict[i]):
 				print("帧号", self.frame_cluster_dict['frame_num'], "分割成功")
+				do_divide_flag = True
+				k = len(cluster_people_num[i])
 				del_id.append(i)
-				X = np.array(tem_dict[i])
-				#print(X[:,:2])
-				#print(cluster_people_num[i])
-				#time_begin = time.time()*1000
-				tag = KMeans(len(cluster_people_num[i])).fit_predict(X[:, :2])
-				#time_end = time.time()*1000
-				#print("kmeans耗时",time_end-time_begin)
-				for j in range(len(tag)):
-					tag[j] += max_id + 1
-				divided_cluster = self.cluster_by_tag(tem_dict[i], tag)
-				for j in divided_cluster:
-					tem_dict[j] = divided_cluster[j]
-				max_id += len(divided_cluster)
+				self.divide_cluster_by_kmeans(k, tem_dict[i], tem_dict, max_id)
+				max_id += k
 		for key in del_id:
 			tem_dict.pop(key)
+		return do_divide_flag
 	#聚类分割结束
 
 	def people_check(self, tem_dict):
@@ -347,10 +357,118 @@ class Cluster():
 		for i in del_list:
 			tem_dict.pop(i)
 
+	def get_topz_points(self, points):
+		k = int(len(points) * 0.1) + 1 #计算前10%点
+		points.sort(key=lambda x: x[2], reverse=True)
+		topz_points = [points[i] for i in range(k)]
+		X = np.array(topz_points)[:,:2]
+		db = skc.DBSCAN(eps=self.eps, min_samples=5).fit(X)
+		tags = db.labels_
+		topz_cluster_dict = self.cluster_by_tag(points,tags)
+		self.cluster_filter_by_noise(topz_cluster_dict)
+
+		#如果有人头中心点距离较近，则不进行分割
+		center_point_list = []
+		for i in topz_cluster_dict:
+			center_point = np.mean(topz_cluster_dict[i], axis=0)
+			center_point_list.append(center_point)
+		#计算相邻中心点的距离，有距离小于0.5的两个中心点，不进行分割
+		dist_list = []
+		if len(center_point_list)>=2:
+			for i in range(1,len(center_point_list)):
+				dist_list.append(math.sqrt((center_point_list[i-1][0]-center_point_list[i][0])**2+
+										   (center_point_list[i-1][1]-center_point_list[i][1])**2))
+		for dist in dist_list:
+			if dist < 0.8:
+				print("距离太近  不通过人头分")
+				return -1
+		return len(topz_cluster_dict)
+
+	def divide_cluster_by_topz_points(self, tem_dict, do_divide_flag):
+		if do_divide_flag:
+			print("已经做过分割，不用进行再次分割")
+			return
+		max_id = -1
+		for i in tem_dict:
+			if i > max_id:
+				max_id = i
+		del_list = []
+		origin_cluster_id = []
+		for i in tem_dict:
+			origin_cluster_id.append(i)
+		for i in origin_cluster_id:
+			k = self.get_topz_points(tem_dict[i])
+			if k > 1:
+				print("通过人头将聚类分割成%d个"%k)
+				self.divide_cluster_by_kmeans(k, tem_dict[i], tem_dict, max_id)
+				max_id += k
+				del_list.append(i)
+		for key in del_list:
+			tem_dict.pop(key)
+
+	def is_person(self, points):
+		snr_sum = self.compute_cluster_sum_snr(points)
+		#snr过小 不是人
+		if snr_sum < self.cluster_snr_limit:
+			return False
+		#点数过少，不是人
+		if len(points) < 20:
+			return False
+		return True
+
+	def cluster_filter_by_latest_frame_data(self, tem_dict, min_repeat_time):
+		#通过最近5帧信息，对这一帧的聚类进行过滤
+		#search_dist = [0.2, 0.2, 0.25, 0.3, 0.35]
+		search_dist = [0.35, 0.3, 0.25, 0.2, 0.2]
+		tem_dict_count = {}  #统计这一帧的聚类出来的点在过去出现了多少次，过滤出现次数过少的类（认为是噪声）
+		assigned = [[False for j in range(len(center))] for center in self.history_people_center_point_data] #判断这一帧的类是否被分配过，每个人只能被分配一次
+		filter_id_list = []
+		for i in tem_dict:
+			tem_dict_count[i] = 0
+			center_point = self.get_center_point(tem_dict[i])
+			for j in range(len(self.history_people_center_point_data)):
+				dist_list = []
+				dist_index_list = []
+				for k in range(len(self.history_people_center_point_data[j])):
+					if assigned[j][k]:
+						continue
+					dist = math.sqrt((self.history_people_center_point_data[j][k][0]-center_point[0])**2 +
+									 (self.history_people_center_point_data[j][k][1]-center_point[1])**2)
+					dist_list.append(dist)
+					dist_index_list.append(k)
+				if len(dist_list) == 0:
+					continue
+				min_index = dist_index_list[0]
+				min_dist = dist_list[0]
+				for p in range(1, len(dist_list)):
+					if min_dist > dist_list[p]:
+						min_dist = dist_list[p]
+						min_index = dist_index_list[p]
+				if min_dist < search_dist[j]:
+					tem_dict_count[i] += 1
+					assigned[j][min_index] = True
+		#将这一帧被分配次数小于2的类，并且这个类比较像噪声（不像人）
+		for i in tem_dict:
+			if tem_dict_count[i] < min_repeat_time and not self.is_person(tem_dict[i]):
+				filter_id_list.append(i)
+
+		for key in filter_id_list:
+			tem_dict.pop(key)
+			print("不像人，分配次数太少，删除这个类")
+
+
+	def update_history_people_center_point_data(self):
+		center_point_list = self.get_cluster_center_point_list()
+		self.history_people_center_point_data.append(center_point_list)
+		if len(self.history_people_center_point_data) <= self.history_data_length:
+			return
+		self.history_people_center_point_data.pop(0)
+
+
 	def points_to_cluster_by_tag(self, points, tag):
-		#将点云转换为人
 		tem_dict = self.cluster_by_tag(points, tag)
-		#print(tem_dict)
+		#print(tem_dict)		#将点云转换为人
+
 		self.cluster_filter_by_noise(tem_dict)
 		#按照点数和dopper对聚类进行分割
 		#self.divide_cluster_by_count_dopper(tem_dict)
@@ -358,9 +476,12 @@ class Cluster():
 		#过滤
 		self.cluster_filter_by_count(tem_dict, self.min_cluster_count)
 		#self.cluster_filter_by_count_and_distance(tem_dict)
+		do_divide_flag = self.divide_cluster_by_people_count(tem_dict)
+		#self.divide_cluster_by_topz_points(tem_dict, do_divide_flag)
 		self.cluster_filter_by_snr(0.8, tem_dict)
-		self.cluster_filter_by_snr_sum(tem_dict)
-		self.divide_cluster_by_people_count(tem_dict)
+		#self.cluster_filter_by_snr_sum(tem_dict)
+		if len(self.history_people_center_point_data) == self.history_data_length:
+			self.cluster_filter_by_latest_frame_data(tem_dict,1)
 		#self.people_check(tem_dict)
 		#tem_dict = sorted(tem_dict.items(), key = lambda x : x[0]) #按key排序
 		cluster_list = self.compute_cluster_attr(tem_dict)
@@ -395,8 +516,13 @@ class Cluster():
 		self.frame_cluster_dict['frame_num'] = frame_data['frame_num']
 		#print(frame_data['frame_num'])
 		points = self.frame_data_to_cluster_points(frame_data)
+		# frame_data_dict = {}
+		# frame_data_dict['frame_num']
+		# if len(self.frame_data_list) < self.mix_frame_num:
+		# 	fram
 		tag = self.dbscan_official(points)
 		self.frame_cluster_dict['cluster'] = self.points_to_cluster_by_tag(points, tag)
+		self.update_history_people_center_point_data()
 		#print(self.frame_cluster_dict)
 
 	#test
