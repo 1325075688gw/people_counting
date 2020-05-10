@@ -1,6 +1,6 @@
 import numpy as np
 import math,sys
-from PyQt5.QtWidgets import QGridLayout,QWidget,QApplication
+from PyQt5.QtWidgets import QGridLayout,QWidget,QVBoxLayout,QMainWindow
 import common
 import pyqtgraph as pg
 from PyQt5 import QtWidgets
@@ -28,21 +28,8 @@ class ApplicationWindow(QWidget):
         self.timer_start()
 
     def initUI(self):
-        # 获取显示器分辨率大小
-        desktop=QApplication.desktop()
-        screenRect = desktop.screenGeometry()
-        screen_height = screenRect.height()
-        screen_width =screenRect.width()
 
-        x=screen_width/4
-        y=screen_height/20
-        width=screen_width*2/3
-        height=width*self.range/(self.xmax-self.xmin)
-
-        self.setGeometry(x,y,width,height)
-
-        # self.setGeometry(width/4,50,width*3/4,width*3/8*self.range/self.xmax)
-        # self.setGeometry(width/5,height/6,height*4/5*self.xmax*2/self.range,height*4/5)
+        self.setGeometry(200,200,1000,620)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
         self.plt=pg.PlotWidget()
@@ -53,7 +40,9 @@ class ApplicationWindow(QWidget):
         self.paintBorder()
 
         self.locations = pg.ScatterPlotItem(size=40)
+        self.assigned=pg.ScatterPlotItem(size=10)
         self.plt.addItem(self.locations)
+        self.plt.addItem(self.assigned)
         self.texts=[]
 
     def paintBorder(self):
@@ -68,53 +57,59 @@ class ApplicationWindow(QWidget):
 
     #每一帧的显示
     def _update_canvas(self):
-        if common.stop_flag:
-            self.plt.removeItem(self.locations)
-            text=pg.TextItem(html='<div style="text-align: center"><span style="color: #000; font-size: 80pt;">录制结束!!!!</span></div>')
-            self.plt.addItem(text)
-            for each in self.texts:
-                self.plt.removeItem(each)
-            text.setPos(-4.5,5)
-            self.setWindowTitle('')
-
         if common.loc_pos.empty():
             return
 
-        locations,postures,frame_num=common.loc_pos.get()
+        locations,postures,cluster_num,assignment,frame_num=common.loc_pos.get()
+        # locations,heights,cluster_num,assignment,frame_num=common.loc_pos.get()
 
 
-        self.setWindowTitle('当前帧有'+str(len(locations))+'个人')
+        self.setWindowTitle('第'+str(frame_num)+'帧，当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
 
         #删除已消失掉的人
+        to_be_deleted=[]
         for person in self.people:
             if person not in locations:
-                del self.people[person]
+                to_be_deleted.append(person)
+        for person in to_be_deleted:
+            del self.people[person]
 
         for each in self.texts:
             self.plt.removeItem(each)
         self.texts=[]
 
         locs=[]
+        assigned=[]
         for person in locations:
 
             if person not in self.people:
                 index=self.get_color_index()
                 self.people[person]=self.colors[index]
 
+            if person in assignment:
+                assigned.append({'pos':assignment[person],'brush':self.people[person]})
+                text1 = pg.TextItem(str(person), color='#000000')
+                text1.setPos(assignment[person][0], assignment[person][1])
+                self.plt.addItem(text1)
+                self.texts.append(text1)
+
             locs.append({'pos':locations[person],'brush':self.people[person]})
             text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
-            text.setPos(locations[person][0]-0.25,locations[person][1]+0.18)
+            # text=pg.TextItem(str(heights[person]),color='#000000')
+            # text = pg.TextItem(str(locations[person]), color='#000000')
+            text.setPos(locations[person][0],locations[person][1])
 
             self.texts.append(text)
             self.plt.addItem(text)
 
         self.locations.setData(locs)
+        self.assigned.setData(assigned)
 
     # 启动定时器 时间间隔秒
     def timer_start(self):
         self.timer = pg.Qt.QtCore.QTimer(self)
         self.timer.timeout.connect(self._update_canvas)
-        self.timer.start(1)
+        self.timer.start(33)
 
     def get_color_index(self):
         for i in range(20):

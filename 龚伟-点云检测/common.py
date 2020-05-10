@@ -17,10 +17,10 @@ xmin=-detection_range/2*math.sqrt(3)
 xmax=detection_range/2*math.sqrt(3)
 ymax=detection_range
 
-M=30
-G=1
+G=0.6
+rate=0.5
+M=20
 min_in_last_times=30
 min_out_last_times=60
-rate=0.5
 
 stop_flag=False

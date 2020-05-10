@@ -4,13 +4,10 @@ import pyqtgraph as pg
 import numpy as np
 import math
 
-sys.path.append(r"../龚伟")
-
 from common import cluster_show_queue
 from common import point_cloud_show_queue
-
-# sys.path.append("../") #for me
-# sys.path.append("../src") #for me
+sys.path.append("../") #for me
+sys.path.append("../src") #for me
 from point_cloud import PointCloud
 
 class ClusterWindow():

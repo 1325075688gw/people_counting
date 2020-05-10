@@ -23,6 +23,7 @@ def cluster_points():
 	:return: None
 	"""
 	tracker = Multi_Kalman_Tracker(G, min_in_last_times, min_out_last_times, M, rate, xmin, xmax, ymax)
+	tracker = Multi_Kalman_Tracker(G, min_in_last_times, min_out_last_times, M, rate, xmin, xmax, ymax)
 	p_filter = Points_Filter(z_min=-0.5, z_max=2.5, del_doppler=0, snr_limit=0)
 	cl = Cluster(eps=0.25, minpts=5, type='2D', min_cluster_count=15, cluster_snr_limit=100)
 
@@ -43,6 +44,7 @@ def cluster_points():
 		locations = tracker.get_each_person_location()
 		postures = tracker.get_each_person_posture()
 		heights = tracker.get_each_person_height()
+		"""
 		temp = 0
 		for i in heights:
 			temp += heights[i]
@@ -59,8 +61,11 @@ def cluster_points():
 		yjh_heights.append(yjh_hei)
 		print("yjh_heights:{0}  gzz_heights:{1}".format(yjh_hei, temp))
 		print("yjh_mean_heights:{0}  gzz_mean_heights:{1}".format(np.mean(yjh_heights), np.mean(gzz_heights)))
-		#common.queue_for_show_transfer.put([frame_num, locations, postures])
+		"""
+		# queue_for_show_transfer.put([frame_num, locations, postures])
 		# loc_pos.put([locations, postures, tracker.get_frame()])
+		assignment = tracker.get_assignment()
+		loc_pos.put([locations, postures, tracker.get_cluster_num(), assignment, tracker.get_frame()])
 
 
 def show_track():

@@ -186,6 +186,8 @@ class UartParseSDK():
         毫米波雷达采集数据，然后将数据push到队列中，供杨家辉调用
         :return:None
         """
+        start_time_frame = 0
+        end_time_frame = 0
         while not common.stop_flag:
             if self.frame_num < 70:
                 # print("frame_num:{0}".format(self.frame_num))
@@ -223,7 +225,7 @@ class UartParseSDK():
             temp2["point_list"] = point_cloud_list
             frame_num = "frame_num_" + str(self.frame_num)
             frame_dict_cart = {frame_num: temp2}
-            # print("frame_num:{0}".format(self.frame_num))
+            print("frame_num:{0}".format(self.frame_num))
             if self.save_2_queue_flag == True:
                 self.json_data_polar.update(frame_dict_polar)
                 self.json_data_cart_transfer.update(frame_dict_cart)
@@ -306,7 +308,7 @@ class UartParseSDK():
         # mw = MainWindow(1200, 600)
         # mw.run()
         
-        # run(common.xmin, common.xmax, common.ymax)
+        run(common.xmin, common.xmax, common.ymax)
 
     def cluster_points_thread(self):
         """

@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import common
 
 MAX_SAVE_FRAMES = 150  # 用于限制内存占用
 
@@ -11,13 +12,13 @@ class Height():
             3.人在一开始进入雷达探测范围时是站着的
     '''
 
-    FRAME_NUMBER_FOR_HEIGHT_CAL=150 #不可小于MAX_SAVE_FRAMES
+    FRAME_NUMBER_FOR_HEIGHT_CAL=100 #不可小于MAX_SAVE_FRAMES
 
     def __init__(self,height):
         self.height=[height]
         self.origin_height=[height]
         self.real_height=height
-        self.has_not_cal_real_height=True
+        self.index=1
 
         #kalman部分
         self.transitionMatrix = 1
@@ -52,9 +53,13 @@ class Height():
         self.height.append(self.s)
         self.origin_height.append(height)
 
-        if len(self.height)==self.FRAME_NUMBER_FOR_HEIGHT_CAL and self.has_not_cal_real_height:
+        self.index+=1
+
+        if len(self.height)==common.M:
+            self.real_height=np.mean(self.height)
+
+        if self.index%self.FRAME_NUMBER_FOR_HEIGHT_CAL==0 and self.index<=self.FRAME_NUMBER_FOR_HEIGHT_CAL*5:
             self.cal_real_height()
-            self.has_not_cal_real_height=False
 
         if len(self.height)>MAX_SAVE_FRAMES:
             del self.height[0]
@@ -73,10 +78,12 @@ class Height():
             mean1=np.mean(self.height[i-min_block_length:i])
             mean2=np.mean(self.height[i:i+min_block_length])
             if abs(mean1-mean2)>=sub_to_cut:
+                # mean_block_heights.append(np.mean(self.height[start:i]))
                 height_blocks.append(self.height[start:i])
                 start=i
             i+=min_block_length
 
+        # mean_block_heights.append(np.mean(self.height[start:]))
         height_blocks.append(self.height[start:])
 
         std=0.01
@@ -90,12 +97,20 @@ class Height():
 
         if len(mean_block_heights)==0:
             mean_block_heights.append(np.mean(self.height))
+            return
 
-        self.real_height=np.max(mean_block_heights)
+        height=np.max(mean_block_heights)
+
+        if height>self.real_height:
+            self.real_height=height*0.2+self.real_height*0.8
+        else:
+            self.real_height=height*0.05+self.real_height*0.95
+
+        print('real_height:',self.real_height,mean_block_heights)
 
 class Posture():
 
-    HEIGHT_THRESHOLD_BETWEEN_STAND_SIT=0.82
+    HEIGHT_THRESHOLD_BETWEEN_STAND_SIT=0.85
     HEIGHT_THRESHOLD_BETWEEN_SIT_LYING=0.58
 
     MOVE_RANGE_THRESHOLD_BETWEEN_WALK_STAND=0.25
