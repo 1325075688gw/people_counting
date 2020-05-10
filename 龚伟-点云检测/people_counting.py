@@ -188,7 +188,7 @@ class UartParseSDK():
         """
         while not common.stop_flag:
             if self.frame_num < 70:
-                print("frame_num:{0}".format(self.frame_num))
+                # print("frame_num:{0}".format(self.frame_num))
                 continue
             point_cloud_num = 0
             point_cloud_list = []
@@ -223,7 +223,7 @@ class UartParseSDK():
             temp2["point_list"] = point_cloud_list
             frame_num = "frame_num_" + str(self.frame_num)
             frame_dict_cart = {frame_num: temp2}
-            print("frame_num:{0}".format(self.frame_num))
+            # print("frame_num:{0}".format(self.frame_num))
             if self.save_2_queue_flag == True:
                 self.json_data_polar.update(frame_dict_polar)
                 self.json_data_cart_transfer.update(frame_dict_cart)
@@ -303,8 +303,9 @@ class UartParseSDK():
         # cw = ClusterWindow(1200, 600)
         # cw.run()
 
-        mw = MainWindow(1200, 600)
-        mw.run()
+        # mw = MainWindow(1200, 600)
+        # mw.run()
+        
         # run(common.xmin, common.xmax, common.ymax)
 
     def cluster_points_thread(self):
@@ -483,9 +484,9 @@ class UartParseSDK():
 
 if __name__ == "__main__":
     # 数据串口, 用户串口, 雷达高度, 雷达倾角
-    uartParseSDK = UartParseSDK("COM4", "COM3", "./ODS_6m_default.cfg", 2.13, 7)
+    uartParseSDK = UartParseSDK("COM4", "COM3", "./ODS_6m_default.cfg", 2.11, 11)
     uartParseSDK.open_port()
     uartParseSDK.send_config()
     uartParseSDK.receive_data_thread().start()
-    uartParseSDK.put_queue_thread(-1, r"./data/data_5_7,1-7米随意走，第1次", 1000, 0 ).start()
+    uartParseSDK.put_queue_thread(0, r"./data/data_5_10,1-7米双人并排走，中间有坐下，第2次", 1200, 0 ).start()
     uartParseSDK.show_frame()

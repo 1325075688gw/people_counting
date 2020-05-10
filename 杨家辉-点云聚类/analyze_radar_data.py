@@ -26,6 +26,8 @@ def cluster_points():
 	p_filter = Points_Filter(z_min=-0.5, z_max=2.5, del_doppler=0, snr_limit=0)
 	cl = Cluster(eps=0.25, minpts=5, type='2D', min_cluster_count=15, cluster_snr_limit=100)
 
+	gzz_heights = []
+	yjh_heights = []
 	while 1:
 		frame_data = queue_for_cluster_transfer.get()
 		fd = copy.deepcopy(frame_data)
@@ -40,8 +42,25 @@ def cluster_points():
 		tracker.nextFrame(clusters_center, people_height_list, frame_num)
 		locations = tracker.get_each_person_location()
 		postures = tracker.get_each_person_posture()
+		heights = tracker.get_each_person_height()
+		temp = 0
+		for i in heights:
+			temp += heights[i]
+		if len(heights) == 0:
+			continue
+		temp = temp/len(heights)
+		gzz_heights.append(temp)
+		if len(people_height_list) > 1:
+			yjh_hei = np.mean(people_height_list)
+		else:
+			if len(people_height_list) == 0:
+				continue
+			yjh_hei = people_height_list[0]
+		yjh_heights.append(yjh_hei)
+		print("yjh_heights:{0}  gzz_heights:{1}".format(yjh_hei, temp))
+		print("yjh_mean_heights:{0}  gzz_mean_heights:{1}".format(np.mean(yjh_heights), np.mean(gzz_heights)))
 		#common.queue_for_show_transfer.put([frame_num, locations, postures])
-		loc_pos.put([locations, postures, tracker.get_frame()])
+		# loc_pos.put([locations, postures, tracker.get_frame()])
 
 
 def show_track():
