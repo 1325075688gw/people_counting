@@ -13,14 +13,21 @@ class Cluster():
 		self.type = type
 		self.min_cluster_count = min_cluster_count
 		self.cluster_division_limit = 80  #达到80个点，对点云分割（分割失败保持原样）
-		self.frame_cluster_dict = {}
+		self.frame_cluster_dict = {'frame_num':0, 'cluster':[]}
 		self.cluster_snr_limit = cluster_snr_limit
 		self.history_people_center_point_data = []
 		self.history_data_length = 5
 
-		#多帧融合
-		self.mix_frame_num = 5
+		#多帧点云融合
+		self.mix_frame_num = 3 #前后2帧融合，5帧融合
 		self.frame_data_list = []  #[{"frame_num":1,"points":[]},..]
+
+		#多帧聚类融合
+		self.do_mix = False
+		self.mix_frame_cluster_num = 5
+		self.frame_cluster_data_list = []  #[{"frame_num":1,"cluster":[{"center_point":[3,3],"height":1.65},...]},..]
+		self.center_point_list = []
+		self.height_list = []
 		'''
 		frame_cluster_dict
 		{
@@ -287,13 +294,14 @@ class Cluster():
 
 		#聚类横向距离不超过0.5，纵向距离不超过0.2
 		if abs(people_center_point[0]-cluster_center_point[0]) > 0.5 or abs(people_center_point[1]-cluster_center_point[1]) > 0.2:
+			print("不满足聚类横向和纵向距离要求")
 			return False
 
 		#聚类的宽度和长度中，应该和对应人的长，宽类似
 		plength, pwidth, pheight = self.compute_cluster_length_width_height(people_point_cloud)
 		clength, cwidth, pheight = self.compute_cluster_length_width_height(cluster)
 		#print("长：",abs(plength-clength),"宽：",abs(pwidth-cwidth))
-		if abs(plength-clength) > 0.5 or abs(pwidth-cwidth) > 0.3:
+		if abs(plength-clength) > 0.8 or abs(pwidth-cwidth) > 0.3:
 			print("不满足长宽要求，无法分割")
 			return False
 
@@ -330,9 +338,9 @@ class Cluster():
 			if len(cluster_people_num[i]) > 1:
 				print("帧号", self.frame_cluster_dict['frame_num'], "准备分割")
 			if len(cluster_people_num[i]) > 1 and self.satisfy_divide(cluster_people_num[i], tem_dict[i]):
-				print("帧号", self.frame_cluster_dict['frame_num'], "分割成功")
 				do_divide_flag = True
 				k = len(cluster_people_num[i])
+				print("帧号", self.frame_cluster_dict['frame_num'], "分割成功，分割%d次" % k)
 				del_id.append(i)
 				self.divide_cluster_by_kmeans(k, tem_dict[i], tem_dict, max_id)
 				max_id += k
@@ -362,7 +370,7 @@ class Cluster():
 		points.sort(key=lambda x: x[2], reverse=True)
 		topz_points = [points[i] for i in range(k)]
 		X = np.array(topz_points)[:,:2]
-		db = skc.DBSCAN(eps=self.eps, min_samples=5).fit(X)
+		db = skc.DBSCAN(eps=self.eps, min_samples=self.minpts).fit(X)
 		tags = db.labels_
 		topz_cluster_dict = self.cluster_by_tag(points,tags)
 		self.cluster_filter_by_noise(topz_cluster_dict)
@@ -379,7 +387,7 @@ class Cluster():
 				dist_list.append(math.sqrt((center_point_list[i-1][0]-center_point_list[i][0])**2+
 										   (center_point_list[i-1][1]-center_point_list[i][1])**2))
 		for dist in dist_list:
-			if dist < 0.8:
+			if dist < 0.5:
 				print("距离太近  不通过人头分")
 				return -1
 		return len(topz_cluster_dict)
@@ -475,9 +483,9 @@ class Cluster():
 		#self.divide_cluster_by_count_dopper_v2(tem_dict)
 		#过滤
 		self.cluster_filter_by_count(tem_dict, self.min_cluster_count)
-		#self.cluster_filter_by_count_and_distance(tem_dict)
+		self.cluster_filter_by_count_and_distance(tem_dict)
 		do_divide_flag = self.divide_cluster_by_people_count(tem_dict)
-		#self.divide_cluster_by_topz_points(tem_dict, do_divide_flag)
+		self.divide_cluster_by_topz_points(tem_dict, do_divide_flag)
 		self.cluster_filter_by_snr(0.8, tem_dict)
 		#self.cluster_filter_by_snr_sum(tem_dict)
 		if len(self.history_people_center_point_data) == self.history_data_length:
@@ -488,6 +496,8 @@ class Cluster():
 		return cluster_list
 	
 	def get_cluster_center_point_list(self):
+		if self.do_mix:
+			return self.center_point_list
 		cluster_center_point_list = []
 		for cluster in self.frame_cluster_dict['cluster']:
 			center_point = [cluster['center_point'][0],cluster['center_point'][1]]
@@ -495,6 +505,8 @@ class Cluster():
 		return cluster_center_point_list
 
 	def get_height_list(self):
+		if self.do_mix:
+			return self.height_list
 		cluster_height_list = []
 		for cluster in self.frame_cluster_dict['cluster']:
 			height = cluster['height']
@@ -511,19 +523,66 @@ class Cluster():
 				dopper_list.append(round(point[3],3))
 			print(cluster['cluster_id'],dopper_list)
 
+	def mix_multi_frame_data(self, points, frame_num):
+		frame_data_dict = {'frame_num': frame_num, 'points': points}
+		self.frame_data_list.append(frame_data_dict)
+		if len(self.frame_data_list) > self.mix_frame_num:
+			self.frame_data_list.pop(0)
+		if len(self.frame_data_list) < self.mix_frame_num:
+			return 0, []
+		mixed_points = []
+		for frame_points_data in self.frame_data_list:
+			mixed_points += frame_points_data['points']
+		mixed_frame_num = self.frame_data_list[self.mix_frame_num//2]['frame_num']
+		return mixed_frame_num, mixed_points
+
+	def update_frame_cluster_data_list(self):
+		frame_cluster_data = {}
+		frame_cluster_data['frame_num'] = self.frame_cluster_dict['frame_num']
+		frame_cluster_data['cluster'] = []
+		for cluster in self.frame_cluster_dict['cluster']:
+			cluster_data = {}
+			cluster_data['center_point'] = cluster['center_point']
+			cluster_data['height'] = cluster['height']
+			frame_cluster_data['cluster'].append(cluster_data)
+		self.frame_cluster_data_list.append(frame_cluster_data)
+		if len(self.frame_cluster_data_list) > self.mix_frame_cluster_num:
+			self.frame_cluster_data_list.pop(0)
+
+	def mix_multi_frame_cluster_data(self):
+		#将多帧聚好的类的中心点合并，用dbscan进行融合，返回新的中心点和身高给跟踪算法
+		self.update_frame_cluster_data_list()
+		cluster_center_list = []
+		if len(self.frame_cluster_data_list) == self.mix_frame_cluster_num:
+			self.center_point_list = []
+			self.height_list = []
+			for frame_cluster_data in self.frame_cluster_data_list:
+				for cluster_data in frame_cluster_data['cluster']:
+					cluster_center_list.append([cluster_data['center_point'][0], cluster_data['center_point'][1], cluster_data['height']])
+			#对多帧的中心点进行dbscan融合
+			X = np.array(cluster_center_list)
+			if len(X) == 0:
+				return
+			X = X[:, :2]
+			db = skc.DBSCAN(eps=0.2, min_samples=1).fit(X)
+			tag = db.labels_
+			cluster_dict = self.cluster_by_tag(cluster_center_list, tag)
+			for i in cluster_dict:
+				cluster_center_mean = np.mean(cluster_dict[i], axis=0)
+				self.center_point_list.append([cluster_center_mean[0], cluster_center_mean[1]])
+				self.height_list.append(cluster_center_mean[2])
+			print("多帧融合前的聚类数：%d，多帧融合后的聚类数：%d，原本聚类数：%d" % (len(X), len(cluster_dict), len(self.frame_cluster_data_list[self.mix_frame_cluster_num//2]['cluster'])))
+
 	def do_clsuter(self, frame_data):
-		#print("begin",self.locations)
 		self.frame_cluster_dict['frame_num'] = frame_data['frame_num']
-		#print(frame_data['frame_num'])
 		points = self.frame_data_to_cluster_points(frame_data)
-		# frame_data_dict = {}
-		# frame_data_dict['frame_num']
-		# if len(self.frame_data_list) < self.mix_frame_num:
-		# 	fram
+		#self.frame_cluster_dict['frame_num'], points = self.mix_multi_frame_data(points, frame_data['frame_num'])
 		tag = self.dbscan_official(points)
 		self.frame_cluster_dict['cluster'] = self.points_to_cluster_by_tag(points, tag)
 		self.update_history_people_center_point_data()
-		#print(self.frame_cluster_dict)
+		#多帧聚类融合
+		# self.do_mix = True
+		# self.mix_multi_frame_cluster_data()
 
 	#test
 	def show_snr(self):
