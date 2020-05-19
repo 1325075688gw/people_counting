@@ -21,8 +21,8 @@ def cluster_points():
 	:return: None
 	"""
 	tracker=Multi_Kalman_Tracker(0.5, 30, 300, 30, 0.5, -4, 4, 8)
-	p_filter = Points_Filter(z_min=0, z_max=2.5, del_doppler=0)
-	cl = Cluster(eps=0.25, minpts=5, type='2D', min_cluster_count=30)
+	p_filter = Points_Filter(z_min=-1, z_max=2.5, del_doppler=0, snr_limit=0)
+	cl = Cluster(eps=0.25, minpts=5, type='2D', min_cluster_count=20, cluster_snr_limit=120)
 
 	while 1:
 		frame_data = common.queue_for_cluster_transfer.get()
@@ -30,8 +30,8 @@ def cluster_points():
 		cl.do_clsuter(frame_data)
 		clusters_center = cl.get_cluster_center_point_list()
 		people_height_list = cl.get_height_list()
-		frame_cluster_dict = copy.deepcopy(cl.frame_cluster_dict)
-		cluster_show_queue.put(frame_cluster_dict)
+		frame_cluster_result = copy.deepcopy(cl.frame_cluster_result)
+		cluster_show_queue.put(frame_cluster_result)
 		frame_num = frame_data["frame_num"]
 		tracker.nextFrame(clusters_center, people_height_list, frame_num)
 		locations = tracker.get_each_person_location()
