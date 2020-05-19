@@ -27,7 +27,7 @@ def cluster_points():
 	while 1:
 		frame_data = common.queue_for_cluster_transfer.get()
 		p_filter.run_filter(frame_data)
-		cl.do_clsuter(frame_data)
+		cl.do_cluster(frame_data)
 		clusters_center = cl.get_cluster_center_point_list()
 		people_height_list = cl.get_height_list()
 		frame_cluster_result = copy.deepcopy(cl.frame_cluster_result)
