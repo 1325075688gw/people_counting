@@ -48,3 +48,10 @@ class PointCloud():
             pointcloud[:] = PointCloud.doppler_filter(pointcloud)
         #print(pointcloud[0])
         return True
+
+    @staticmethod
+    def get_frame_pointcloud3(pointcloud):
+        if common.point_cloud_show_queue.empty():
+            return False
+        pointcloud[:] = common.point_cloud_show_queue.get()
+        return True
