@@ -2,6 +2,7 @@ import numpy as np  # 数据结构
 import sklearn.cluster as skc
 from sklearn.cluster import KMeans
 import math
+import copy
 import time
 from sklearn.mixture.gaussian_mixture import GaussianMixture
 from sklearn import metrics
@@ -61,11 +62,11 @@ class Cluster:
         self.cluster_snr_limit = cluster_snr_limit
 
         # 多帧点云融合
-        self.mix_frame_num = 3  # 前后1帧融合，3帧融合；前后2帧融合，5帧融合
+        self.mix_frame_num = 1  # 前后1帧融合，3帧融合；前后2帧融合，5帧融合
         self.frame_data_list = []  # [{"frame_num":1,"points":[]},..]
 
         # 结果，就是这一帧得到的person list
-        self.frame_cluster_result = {'frame_num': 0, 'person_list':[]}
+        self.frame_cluster_result = {'frame_num': 0, 'person_list': []}
 
         # 过去n帧的历史结果信息
         self.history_data_size = 5
@@ -80,7 +81,7 @@ class Cluster:
 
         # 进行多帧点云融合，减少空帧，单帧无法得到好的点云的情况
         self.frame_cluster_result['frame_num'], points = self.mix_multi_frame_data(points, frame_data['frame_num'])
-
+        # print("帧号:", self.frame_cluster_result['frame_num'])
         # 加入点云显示队列
         point_cloud_show_queue.put(points)
 
@@ -91,6 +92,7 @@ class Cluster:
         person_list = self.trans_cluster_to_person(unidentified_cluster_list)
 
         # 结束这一帧的聚类分析，并保存结果
+
         self.save_result(person_list)
 
     @staticmethod
@@ -183,10 +185,11 @@ class Cluster:
         for unidentified_cluster in unidentified_cluster_list:
             # 检测这个类是否确定能转换成一个人，不能返回0  能返回1 大于1人返回2
             check_result = Person.check_person(unidentified_cluster, self.min_cluster_count, self.cluster_snr_limit)
-
             # 如果这个类 无法转换成人 但是在过去有出现过，也将他转换成人
             if check_result == 0 and unidentified_cluster.appear_time >= 1:
+            # if True:
                 person_list.append(Person(unidentified_cluster))
+                # continue
 
             # 如果这个类 可以转换成一个人 将其转换
             if check_result == 1:
@@ -251,9 +254,10 @@ class Cluster:
         k = 1
         np_points = np.array(unidentified_cluster.points)[:, :2]
         # 如果能用上一帧进行分割，用上一帧的k进行分割
+        time_start = time.time() * 1000
         if self.satisfy_divide_by_last_history_data(unidentified_cluster):
             k = len(unidentified_cluster.match_person_list[self.history_data_size-1])
-            print("用上一帧分割",k)
+            # print("用上一帧分割",k)
         # 如果不能用上一帧的进行分割，则综合判断点云，找出最合适的k
         else:
             # 根据多个判定条件，得到所有可能的分割数k
@@ -261,12 +265,14 @@ class Cluster:
 
             # 根据人头分割，找到k
             topz_points_k = self.get_k_by_topz_points(unidentified_cluster)
+            #print("人头分割的k:", topz_points_k)
             if topz_points_k >= 2:
                 test_k_set.add(topz_points_k)
 
             # 根据历史出现最多次数，找到k
             history_times_list = self.get_k_by_history_people_num(unidentified_cluster)
             for i in history_times_list:
+                #print("历史出现最多次数的k:", i)
                 test_k_set.add(i)
 
             # 根据长宽比等先验知识，找到k
@@ -274,24 +280,31 @@ class Cluster:
             # 依次用高斯混合尝试这些分割，然后选择其中分数最高的k
             score = 0
             people_num = 1
-            print(test_k_set)
+            # print(test_k_set)
             for tem_k in test_k_set:
                 k_tags = GaussianMixture(n_components=tem_k).fit_predict(np_points)
                 try:
-                    tem_score = metrics.calinski_harabasz_score(np_points, k_tags)
+                    #tem_score = metrics.calinski_harabasz_score(np_points, k_tags)
+                    tem_score = self.get_points_score(np_points, k_tags)
                 except:
                     continue
                 if tem_score > score:
                     score = tem_score
                     people_num = tem_k
-            k = people_num
+            if people_num == 2 and score < 50:
+                k = 1
+            else:
+                k = people_num
+            # print("最可信的k：", k)
+
         # 当只有一个人时，直接返回
         if k == 1:
             return [unidentified_cluster]
         # 当判断出有k个人时，用高斯混合分割
-        print(np_points)
-        tags = KMeans(k).fit_predict(np_points)
-        # tags = GaussianMixture(n_components=k).fit_predict(np_points)
+        # tags = KMeans(k).fit_predict(np_points)
+        tags = GaussianMixture(n_components=k).fit_predict(np_points)
+        time_end = time.time() * 1000
+        # print("函数计时", time_end - time_start)
         return self.trans_points_to_unidentified_cluster_list(unidentified_cluster.points, tags)
 
     def satisfy_divide_by_last_history_data(self, unidentified_cluster):
@@ -314,17 +327,17 @@ class Cluster:
         # 聚类中心点横向距离不超过0.5，纵向距离不超过0.2
         if abs(tem_cluster.center_point[0] - unidentified_cluster.center_point[0]) > 0.5 or abs(
                 tem_cluster.center_point[1] - unidentified_cluster.center_point[1]) > 0.2:
-            print("不满足聚类横向和纵向距离要求")
+            # print("不满足聚类横向和纵向距离要求")
             return False
 
         # 聚类的宽度和长度中，应该和对应人的长，宽类似
         if abs(tem_cluster.length - unidentified_cluster.length) > 0.8 or abs(tem_cluster.width - unidentified_cluster.width) > 0.45:
-            print("不满足长宽变化要求，无法分割：长：%f，宽：%f" % (tem_cluster.length - unidentified_cluster.length, tem_cluster.width - unidentified_cluster.width))
+            # print("不满足长宽变化要求，无法分割：长：%f，宽：%f" % (tem_cluster.length - unidentified_cluster.length, tem_cluster.width - unidentified_cluster.width))
             return False
         return True
 
     def get_k_by_topz_points(self, unidentified_cluster):
-        points = unidentified_cluster.points
+        points = copy.deepcopy(unidentified_cluster.points)
         k = int(len(points) * 0.1) + 1  # 计算前10%点
         points.sort(key=lambda x: x[2], reverse=True)
         topz_points = [points[i] for i in range(k)]
@@ -346,7 +359,7 @@ class Cluster:
                                            (center_point_list[i - 1][1] - center_point_list[i][1]) ** 2))
         for dist in dist_list:
             if dist < 0.5:
-                print("距离太近  不通过人头分")
+                # print("距离太近  不通过人头分")
                 return -1
         return len(topz_cluster_dict)
 
@@ -369,3 +382,12 @@ class Cluster:
             if history_people_num[i] == times_max and i > 1:
                 k_list.append(i)
         return k_list
+
+    def get_points_score(self, points, tags):
+        # 先对点分类
+        tem_dict = self.cluster_by_tag(points, tags)
+        all_score = 0
+        for i in tem_dict:
+            all_score += Person.get_cluster_score(UnidentifiedCluster(tem_dict[i], self.mix_frame_num, self.history_data_size))
+
+        return all_score/len(tem_dict)
