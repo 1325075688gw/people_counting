@@ -250,7 +250,7 @@ class Cluster:
             center_point_list.append([person.center_point[0], person.center_point[1]])
         return center_point_list
 
-    def divide_cluster(self, unidentified_cluster):
+    def divide_cluster_origin(self, unidentified_cluster):
         k = 1
         np_points = np.array(unidentified_cluster.points)[:, :2]
         # 如果能用上一帧进行分割，用上一帧的k进行分割
@@ -260,7 +260,8 @@ class Cluster:
             # print("用上一帧分割",k)
         # 如果不能用上一帧的进行分割，则综合判断点云，找出最合适的k
         else:
-            # 根据多个判定条件，得到所有可能的分割数k
+            # 根据多个判定条件，得到所有可能的分割数k,
+            # 简化操作  直接假定可以分成2,3,4个人
             test_k_set = set()
 
             # 根据人头分割，找到k
@@ -275,6 +276,9 @@ class Cluster:
                 #print("历史出现最多次数的k:", i)
                 test_k_set.add(i)
 
+            # 人头分割可能找不到3,4 手动加入3,4
+            test_k_set.add(3)
+            test_k_set.add(4)
             # 根据长宽比等先验知识，找到k
 
             # 依次用高斯混合尝试这些分割，然后选择其中分数最高的k
@@ -282,16 +286,21 @@ class Cluster:
             people_num = 1
             # print(test_k_set)
             for tem_k in test_k_set:
+            # 简化操作  直接假定可以分成2,3,4个人
+            # for tem_k in range(2, 5):
                 k_tags = GaussianMixture(n_components=tem_k).fit_predict(np_points)
-                try:
-                    #tem_score = metrics.calinski_harabasz_score(np_points, k_tags)
-                    tem_score = self.get_points_score(np_points, k_tags)
-                except:
-                    continue
+                # try:
+                metrics_score = metrics.calinski_harabasz_score(np_points, k_tags)
+                # print("人数：%d,分数：%f" % (tem_k, metrics_score))
+                tem_score = self.get_points_score(unidentified_cluster.points, k_tags, metrics_score)
+                # print("tem_score:%f" % tem_score)
+                # except:
+                #     continue
                 if tem_score > score:
                     score = tem_score
                     people_num = tem_k
-            if people_num == 2 and score < 50:
+            if score < Person.get_cluster_score2(unidentified_cluster)-0.1:  #0,75
+                # print("分数太低 不分割")
                 k = 1
             else:
                 k = people_num
@@ -305,6 +314,43 @@ class Cluster:
         tags = GaussianMixture(n_components=k).fit_predict(np_points)
         time_end = time.time() * 1000
         # print("函数计时", time_end - time_start)
+        return self.trans_points_to_unidentified_cluster_list(unidentified_cluster.points, tags)
+
+    def divide_cluster(self, unidentified_cluster):
+        k = 1
+        np_points = np.array(unidentified_cluster.points)[:, :2]
+        # 如果能用上一帧进行分割，用上一帧的k进行分割
+        # 依次用高斯混合尝试这些分割，然后选择其中分数最高的k
+        score = 0
+        people_num = 1
+        # print(test_k_set)
+        # 简化操作  直接假定可以分成2,3,4个人
+        tags = []
+        for tem_k in range(2, 3):
+            k_tags = GaussianMixture(n_components=tem_k).fit_predict(np_points)
+            # try:
+            #metrics_score = metrics.calinski_harabasz_score(np_points, k_tags)
+            # print("人数：%d,分数：%f" % (tem_k, metrics_score))
+            tem_score = self.get_points_score(unidentified_cluster.points, k_tags)
+            # print("tem_score:%f" % tem_score)
+            # except:
+            #     continue
+            if tem_score > score:
+                tags[:] = k_tags
+                score = tem_score
+                people_num = tem_k
+        origin_score = Person.get_cluster_score2(unidentified_cluster)
+        # print("分割前得分：%f,分割后得分：%f" % (origin_score, score))
+        if score-0.1 < origin_score:  #0,75
+            # print("分数太低 不分割")
+            k = 1
+        else:
+            k = people_num
+            # print("最可信的k：", k)
+
+        # 当只有一个人时，直接返回
+        if k == 1:
+            return [unidentified_cluster]
         return self.trans_points_to_unidentified_cluster_list(unidentified_cluster.points, tags)
 
     def satisfy_divide_by_last_history_data(self, unidentified_cluster):
@@ -388,6 +434,19 @@ class Cluster:
         tem_dict = self.cluster_by_tag(points, tags)
         all_score = 0
         for i in tem_dict:
-            all_score += Person.get_cluster_score(UnidentifiedCluster(tem_dict[i], self.mix_frame_num, self.history_data_size))
-
+            all_score += Person.get_cluster_score2(UnidentifiedCluster(tem_dict[i], self.mix_frame_num, self.history_data_size))
+        # 聚类得分
+        # if metrics_score > 2000:
+        #     metrics_score = 2000
+        # cluster_score = metrics_score/2000
+        # print("该聚类得分：%f" % cluster_score)
+        # print("平均得分：%f" % (all_score/len(tem_dict)))
         return all_score/len(tem_dict)
+
+    def get_k_by_length_and_width(self, unidentified_cluster):
+        k = 0
+        add_length = Person.person_length - 0.25
+        add_width = Person.person_width
+        k += 1
+
+
