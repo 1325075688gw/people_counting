@@ -6,11 +6,11 @@ class Person:
     # person_length_max = 1.051704
     # person_width = 0.385592
     # person_points = 48
-    person_length_min = 1.020546
-    person_length_max = 1.470546
-    person_width_min = 0.354192
-    person_width_max = 0.5042
-    person_points = 77
+    person_length_min = 0.581567
+    person_length_max = 1.031567
+    person_width_min = 0.255162
+    person_width_max = 0.405162
+    person_points = 89.985612
     coefficient_length = 0.4
     coefficient_width = 0.5
     coefficient_points = 0.1

@@ -62,17 +62,18 @@ class Cluster:
         self.cluster_snr_limit = cluster_snr_limit
 
         # 多帧点云融合
-        self.mix_frame_num = 1  # 前后1帧融合，3帧融合；前后2帧融合，5帧融合
+        self.mix_frame_num = 3  # 前后1帧融合，3帧融合；前后2帧融合，5帧融合
         self.frame_data_list = []  # [{"frame_num":1,"points":[]},..]
 
         # 结果，就是这一帧得到的person list
         self.frame_cluster_result = {'frame_num': 0, 'person_list': []}
 
         # 过去n帧的历史结果信息
-        self.history_data_size = 5
+        self.history_data_size = 2
         self.history_frame_cluster_result = []
         # 过去5帧的搜索区域
-        self.search_dist = [0.5, 0.45, 0.4, 0.35, 0.3]
+        self.search_dist = [0.35, 0.3]
+        #self.search_dist = [0.5, 0.45, 0.4, 0.35, 0.3]
 
     def do_cluster(self, frame_data):
         # 提取frame_data的帧号和点云数据
@@ -189,7 +190,7 @@ class Cluster:
             if check_result == 0 and unidentified_cluster.appear_time >= 1:
             # if True:
                 person_list.append(Person(unidentified_cluster))
-                # continue
+                continue
 
             # 如果这个类 可以转换成一个人 将其转换
             if check_result == 1:
@@ -204,7 +205,7 @@ class Cluster:
 
     def cluster_appear_time_in_latest_frame(self, cur_frame_cluster_list):
         # 根据最近几帧的聚类结果，对这一帧每一个聚类在过去出现的次数进行统计，并找出这个聚类能被每一帧分配几个人
-        if len(self.history_frame_cluster_result) < 5:
+        if len(self.history_frame_cluster_result) < self.history_data_size:
             return
 
         # 通过最近5帧信息，对这一帧的聚类进行过滤
@@ -235,7 +236,7 @@ class Cluster:
     def save_result(self, person_list):
         self.frame_cluster_result['person_list'] = person_list
         self.history_frame_cluster_result.append(person_list)
-        if len(self.history_frame_cluster_result) > 5:
+        if len(self.history_frame_cluster_result) > self.history_data_size:
             self.history_frame_cluster_result.pop(0)
 
     def get_height_list(self):
@@ -341,7 +342,7 @@ class Cluster:
                 people_num = tem_k
         origin_score = Person.get_cluster_score2(unidentified_cluster)
         # print("分割前得分：%f,分割后得分：%f" % (origin_score, score))
-        if score-0.1 < origin_score:  #0,75
+        if score < origin_score:  #0,75
             # print("分数太低 不分割")
             k = 1
         else:

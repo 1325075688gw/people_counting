@@ -8,6 +8,8 @@ def read_and_cluster(filename):
     length_list = []
     width_list = []
     points_num_list = []
+    mix_points_list = []
+    mix_num = 3
     #f = open(filename, 'r', encoding='utf-8')
     with open(filename, 'r', encoding='utf-8') as f:
         temfile = json.load(f)
@@ -21,10 +23,21 @@ def read_and_cluster(filename):
                 point = [data['x'], data['y'], data['z'], data['doppler'], data['snr']]
                 points.append(point)
 
-            if points == []:
+            mix_points_list.append(points)
+            if len(mix_points_list) < mix_num:
+                continue
+            if len(mix_points_list) > mix_num:
+                mix_points_list.pop(0)
+
+            mix_points = []
+
+            for ps in mix_points_list:
+                mix_points += ps
+
+            if mix_points == []:
                 continue
             #聚类
-            X = np.array(points)
+            X = np.array(mix_points)
             X = X[:, :2]
             db = skc.DBSCAN(eps=0.25, min_samples=5).fit(X)
             tags = db.labels_
@@ -38,7 +51,7 @@ def read_and_cluster(filename):
                     key_list.append(i)
             for i in key_list:
                 tem_dict[i] = []
-            for t, point in zip(tags, points):
+            for t, point in zip(tags, mix_points):
                 tem_dict[t].append(point)
 
             #滤波
@@ -87,5 +100,5 @@ if __name__ == "__main__":
     result_list = []
     run_training_data(base_path, path, filename, result_list)
     person_attr = np.mean(result_list, axis=0)
-    print("person_length_max：%f,person_length_min：%f,person_width:%f,person_points:%f" % (person_attr[0]+0.3, person_attr[0]-0.15, person_attr[1], person_attr[2]))
+    print("person_length_max：%f,person_length_min：%f,person_width_max:%f,person_width_min:%f,person_points:%f" % (person_attr[0]+0.3, person_attr[0]-0.15, person_attr[1]+0.1, person_attr[1]-0.05, person_attr[2]))
 
