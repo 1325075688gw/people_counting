@@ -2,14 +2,15 @@ from height import Height
 
 
 class Person:
-    person_length_min = 0.601704
-    person_length_max = 1.051704
-    person_width = 0.385592
-    person_points = 48
-    person_length_min = 0.8
-    person_length_max = 1.2
-    person_width = 0.42
-    person_points = 50
+    # person_length_min = 0.601704
+    # person_length_max = 1.051704
+    # person_width = 0.385592
+    # person_points = 48
+    person_length_min = 1.020546
+    person_length_max = 1.470546
+    person_width_min = 0.354192
+    person_width_max = 0.5042
+    person_points = 77
     coefficient_length = 0.4
     coefficient_width = 0.5
     coefficient_points = 0.1
@@ -75,7 +76,12 @@ class Person:
     @staticmethod
     def get_cluster_score2(unidentified_cluster):
         # 宽度打分
-        width_score = 1 - abs(unidentified_cluster.width - Person.person_width)/Person.person_width
+        if unidentified_cluster.width < Person.person_width_min:
+            width_score = 1 - (Person.person_width_min - unidentified_cluster.width) / Person.person_width_min
+        elif unidentified_cluster.width > Person.person_width_max:
+            width_score = 1 - abs(unidentified_cluster.width - Person.person_width_max)/Person.person_width_max
+        else:
+            width_score = 1
         #print("原始宽度：%f，宽度得分：%f" % (unidentified_cluster.width, width_score))
         # 长度打分
         if unidentified_cluster.length < Person.person_length_min:
@@ -86,7 +92,7 @@ class Person:
             length_score = 1
         #print("长度得分：%f" % length_score)
         # 点数打分
-        standard_points_score = Person.person_points * unidentified_cluster.mix_frame_num
+        standard_points_score = Person.person_points
         points_num_score = 1 - abs(unidentified_cluster.points_num - standard_points_score)/standard_points_score
         #print("点数得分：%f" % points_num_score)
 
