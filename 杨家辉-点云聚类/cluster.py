@@ -22,6 +22,7 @@ class UnidentifiedCluster:
         self.points = points
         self.points_num = len(points)
         self.center_point = self.compute_center_point()
+        self.dist = math.sqrt(self.center_point[0]**2+self.center_point[1]**2)
         self.doppler_v = self.center_point[3]
         self.avg_snr = self.center_point[4]
         self.sum_snr = self.compute_cluster_sum_snr()
@@ -45,10 +46,39 @@ class UnidentifiedCluster:
         return np.mean(self.points, axis=0)
 
     def compute_cluster_length_width_height(self):
+        spin_theta = self.get_spin_theta()
         cluster_max = np.max(self.points, axis=0)
         cluster_min = np.min(self.points, axis=0)
-        return cluster_max[0] - cluster_min[0], cluster_max[1] - cluster_min[1], cluster_max[2]
+        if abs(spin_theta) < 0.05:
+            return cluster_max[0] - cluster_min[0], cluster_max[1] - cluster_min[1], cluster_max[2]
 
+        # 对坐标进行旋转
+        trans_points = []
+        for point in self.points:
+            trans_point = self.transfer_point(point[0], point[1], spin_theta)
+            trans_points.append(trans_point)
+
+        # 求旋转后的点云长宽
+        trans_cluster_max = np.max(trans_points, axis=0)
+        trans_cluster_min = np.min(trans_points, axis=0)
+        #print("转换后的长：%f,宽：%f"%(trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1]))
+        return trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1], cluster_max[2]
+
+
+    def get_spin_theta(self):
+        # 求将y的正半轴的中心点旋转到y的正半轴上，需要旋转的角度（用弧度表示）
+        theta = 0
+        if self.center_point[0] < 0:
+            theta = -1*math.atan(self.center_point[1]/self.center_point[0])-math.pi/2
+        if self.center_point[0] > 0:
+            theta = math.pi/2-math.atan(self.center_point[1]/self.center_point[0])
+        return theta
+
+    def transfer_point(self, x, y, theta):
+        # 将点逆时针旋转theta角度，返回旋转后的二维坐标
+        t_x = math.cos(theta)*x-math.sin(theta)*y
+        t_y = math.cos(theta)*y+math.sin(theta)*x
+        return [t_x,t_y]
 
 class Cluster:
     def __init__(self, eps, minpts, type, min_cluster_count, cluster_snr_limit):
@@ -300,7 +330,7 @@ class Cluster:
                 if tem_score > score:
                     score = tem_score
                     people_num = tem_k
-            if score < Person.get_cluster_score2(unidentified_cluster)-0.1:  #0,75
+            if score-0.1 < Person.get_cluster_score2(unidentified_cluster):  #0,75
                 # print("分数太低 不分割")
                 k = 1
             else:
@@ -342,10 +372,11 @@ class Cluster:
                 people_num = tem_k
         origin_score = Person.get_cluster_score2(unidentified_cluster)
         # print("分割前得分：%f,分割后得分：%f" % (origin_score, score))
-        if score < origin_score:  #0,75
+        if score-0.15 < origin_score:  #0,75
             # print("分数太低 不分割")
             k = 1
         else:
+            # print("分割前分数：%f,分割后分数：%f" % (origin_score, score))
             k = people_num
             # print("最可信的k：", k)
 

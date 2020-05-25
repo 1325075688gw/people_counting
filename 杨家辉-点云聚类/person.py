@@ -1,16 +1,24 @@
 from height import Height
-
+import math
 
 class Person:
     # person_length_min = 0.601704
     # person_length_max = 1.051704
     # person_width = 0.385592
     # person_points = 48
-    person_length_min = 0.581567
-    person_length_max = 1.031567
-    person_width_min = 0.255162
-    person_width_max = 0.405162
-    person_points = 89.985612
+    # 长度方程
+    # 训练数据 然后填进去
+    person_length_upper_offset = 0.3
+    person_length_lower_offset = -0.1
+
+    person_length_coef = 0.135
+    person_length_intercept = 0.524
+
+    person_width_min = 0.330567
+    person_width_max = 0.480567
+    person_points = 225
+    # 训练结束
+
     coefficient_length = 0.4
     coefficient_width = 0.5
     coefficient_points = 0.1
@@ -19,6 +27,7 @@ class Person:
         self.points = unidentified_cluster.points
         self.center_point = unidentified_cluster.center_point
         self.cur_height = self.compute_cluster_height()
+        self.dist = unidentified_cluster.dist
         self.doppler_v = unidentified_cluster.doppler_v
         self.width = unidentified_cluster.width
         self.length = unidentified_cluster.length
@@ -84,13 +93,17 @@ class Person:
             width_score = 1
         #print("原始宽度：%f，宽度得分：%f" % (unidentified_cluster.width, width_score))
         # 长度打分
-        if unidentified_cluster.length < Person.person_length_min:
-            length_score = 1 - (Person.person_length_min - unidentified_cluster.length) / Person.person_length_min
-        elif unidentified_cluster.length > Person.person_length_max:
-            length_score = 1 - abs(unidentified_cluster.length - Person.person_length_max)/Person.person_length_max
+        # 根据长度方程求出标准长度
+        standard_length = Person.person_length_coef * unidentified_cluster.dist + Person.person_length_intercept
+        person_length_min = standard_length + Person.person_length_lower_offset
+        person_length_max = standard_length + Person.person_length_upper_offset
+        if unidentified_cluster.length < standard_length + Person.person_length_lower_offset:
+            length_score = 1 - (person_length_min - unidentified_cluster.length) / person_length_min
+        elif unidentified_cluster.length > person_length_max:
+            length_score = 1 - abs(unidentified_cluster.length - person_length_max)/person_length_max
         else:
             length_score = 1
-        #print("长度得分：%f" % length_score)
+        # print("长度得分：%f" % length_score)
         # 点数打分
         standard_points_score = Person.person_points
         points_num_score = 1 - abs(unidentified_cluster.points_num - standard_points_score)/standard_points_score
