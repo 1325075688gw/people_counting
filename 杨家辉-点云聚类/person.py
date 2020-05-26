@@ -18,8 +18,8 @@ class Person:
     coefficient_width = 0.5
     coefficient_points = 0.1
 
-    # 当人远离雷达，并在距离雷达boundary 外，不做过滤
-    boundary = 6
+    # 在距离雷达boundary 外，不做过滤
+    boundary = 4.5
 
     def __init__(self, unidentified_cluster):
         self.points = unidentified_cluster.points
@@ -42,12 +42,17 @@ class Person:
     def check_person(unidentified_cluster, min_cluster_count, cluster_snr_limit):
         # 根据输入的点云聚类，判断点云: 不是人  返回0  一个人  返回1  多人 返回2
 
-        # 当人远离雷达，在边界范围外时，不做噪声判断
-        if not (unidentified_cluster.doppler_v > 0 and unidentified_cluster.dist > Person.boundary):
+        # 在边界范围外时，不做噪声判断
+        if unidentified_cluster.dist < Person.boundary:
             # 点云snr和太小，或者点数太少，不是人
             if unidentified_cluster.sum_snr < cluster_snr_limit * unidentified_cluster.mix_frame_num:
                 return 0
             if unidentified_cluster.points_num < min_cluster_count * unidentified_cluster.mix_frame_num:
+                return 0
+        else:
+            if unidentified_cluster.sum_snr < cluster_snr_limit:
+                return 0
+            if unidentified_cluster.points_num < min_cluster_count:
                 return 0
 
         if unidentified_cluster.length < 0.95 and unidentified_cluster.width < 0.55:
