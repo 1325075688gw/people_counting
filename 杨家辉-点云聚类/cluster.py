@@ -108,8 +108,9 @@ class Cluster:
     def do_cluster(self, frame_data):
         # 提取frame_data的帧号和点云数据
         self.frame_cluster_result['frame_num'] = frame_data['frame_num']
-        points = Cluster.frame_data_to_cluster_points(frame_data)
-
+        #points = Cluster.frame_data_to_cluster_points(frame_data)
+        points = frame_data['point_list']
+        #print(points)
         # 进行多帧点云融合，减少空帧，单帧无法得到好的点云的情况
         self.frame_cluster_result['frame_num'], points = self.mix_multi_frame_data(points, frame_data['frame_num'])
         # print("帧号:", self.frame_cluster_result['frame_num'])
