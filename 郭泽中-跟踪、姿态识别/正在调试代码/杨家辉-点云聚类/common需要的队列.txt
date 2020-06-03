@@ -1,0 +1,3 @@
+frame_data_queue = Queue()  #跑录制的文件需要
+cluster_show_queue = Queue() #可视化聚类
+point_cloud_show_queue = Queue()  #可视化点云
