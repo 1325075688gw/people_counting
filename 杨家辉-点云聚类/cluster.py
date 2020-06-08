@@ -39,7 +39,7 @@ class UnidentifiedCluster:
         # 用于多块雷达的参数
 
         self.radar_num = self.get_radar_num()  # 聚类属于哪个雷达探测范围
-        self.origin_radar_points = self.get_points_in_radar_num()  # 在原始雷达下的点云坐标
+        self.origin_radar_points = get_coordinate_in_radar_num(self.radar_num, self.points)  # 在原始雷达下的点云坐标
         self.origin_radar_center_point = self.compute_center_point(self.origin_radar_points)  # 在原始雷达下的中心坐标
         self.origin_radar_dist = math.sqrt(self.origin_radar_center_point[0]**2+self.origin_radar_center_point[1]**2)
         self.length, self.width, self.height = self.compute_cluster_length_width_height(self.origin_radar_points, self.origin_radar_center_point)
@@ -95,13 +95,6 @@ class UnidentifiedCluster:
     def get_radar_num(self):
         return get_radar_num(self.center_point[0], self.center_point[1])
 
-    def get_points_in_radar_num(self):
-        transfer_points = []
-        for point in self.points:
-            tem_point = get_coordinate_in_radar_num(self.radar_num, point[0], point[1])
-            tem_point.append(point[2])
-            transfer_points.append(tem_point)
-        return transfer_points
 
 class Cluster:
     def __init__(self, eps, minpts, type, min_cluster_count, cluster_snr_limit):
