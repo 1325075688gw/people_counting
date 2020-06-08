@@ -1,17 +1,10 @@
 from height import Height
 import math
-import sys
-sys.path.append('../')
-import common
 
 class Person:
     person_length_upper_offset = 0.3
     person_length_lower_offset = -0.1
     # 长度方程
-    # 训练数据 然后填进去
-    radar1_training_result = {'person_length_coef': 0.183394, 'person_length_intercept': 0.554475, 'person_width_max': 0.704638, 'person_width_min': 0.554638, 'person_points': 398}
-    radar2_training_result = {'person_length_coef': 0.212401, 'person_length_intercept': 0.820566, 'person_width_max': 0.943920, 'person_width_min': 0.793920, 'person_points': 498}
-    # 训练结束
 
     coefficient_length = 0.4
     coefficient_width = 0.5
@@ -19,6 +12,11 @@ class Person:
 
     # 在距离雷达boundary 外，不做过滤
     boundary = 4.5
+
+    # 多雷达下训练结果
+    radar_training_result = [{'person_length_coef': 0.183394, 'person_length_intercept': 0.554475, 'person_width_max': 0.704638, 'person_width_min': 0.554638, 'person_points': 398},
+                             {'person_length_coef': 0.212401, 'person_length_intercept': 0.820566, 'person_width_max': 0.943920, 'person_width_min': 0.793920, 'person_points': 498},
+                             {}]
 
     def __init__(self, unidentified_cluster):
         self.points = unidentified_cluster.points
@@ -42,7 +40,7 @@ class Person:
         # 根据输入的点云聚类，判断点云: 不是人  返回0  一个人  返回1  多人 返回2
 
         # 在边界范围外时，不做噪声判断
-        if unidentified_cluster.dist < Person.boundary:
+        if unidentified_cluster.origin_radar_dist < Person.boundary:
             # 点云snr和太小，或者点数太少，不是人
             if unidentified_cluster.sum_snr < cluster_snr_limit * unidentified_cluster.mix_frame_num:
                 return 0
@@ -88,14 +86,9 @@ class Person:
 
     @staticmethod
     def get_cluster_score2(unidentified_cluster):
-        if unidentified_cluster.center_point[1] > common.radar_2_y:
-            training_result = Person.radar2_training_result
-            dist = unidentified_cluster.origin_dist
-        else:
-            training_result = Person.radar1_training_result
-            dist = unidentified_cluster.dist
         # 宽度打分
-        if unidentified_cluster.dist >= 2.5:
+        training_result = Person.radar_training_result[unidentified_cluster.radar_num]
+        if unidentified_cluster.origin_radar_dist >= 2.5:
             if unidentified_cluster.width < training_result['person_width_min']:
                 width_score = 1 - (training_result['person_width_min'] - unidentified_cluster.width) / training_result['person_width_min']
             elif unidentified_cluster.width > training_result['person_width_max']:
@@ -112,7 +105,7 @@ class Person:
         #print("原始宽度：%f，宽度得分：%f" % (unidentified_cluster.width, width_score))
         # 长度打分
         # 根据长度方程求出标准长度
-        standard_length = training_result['person_length_coef'] * dist + training_result['person_length_intercept']
+        standard_length = training_result['person_length_coef'] * unidentified_cluster.origin_radar_dist + training_result['person_length_intercept']
         person_length_min = standard_length + Person.person_length_lower_offset
         person_length_max = standard_length + Person.person_length_upper_offset
         if unidentified_cluster.length < standard_length + Person.person_length_lower_offset:

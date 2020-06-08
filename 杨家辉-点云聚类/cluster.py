@@ -12,46 +12,9 @@ import sys
 
 sys.path.append('../')
 from common import point_cloud_show_queue
-import common
 from person import Person
+from origin_point_cloud.utils import get_coordinate_in_radar_num, get_radar_num
 # 显示结束
-
-
-def get_spin_theta(center_point):
-    # 求将y的正半轴的中心点旋转到y的正半轴上，需要旋转的角度（用弧度表示）
-    theta = 0
-    if center_point[0] < 0:
-        theta = -1 * math.atan(center_point[1] / center_point[0]) - math.pi / 2
-    if center_point[0] > 0:
-        theta = math.pi / 2 - math.atan(center_point[1] / center_point[0])
-    return theta
-
-
-def transfer_point(x, y, theta):
-    # 将点逆时针旋转theta角度，返回旋转后的二维坐标
-    t_x = math.cos(theta) * x - math.sin(theta) * y
-    t_y = math.cos(theta) * y + math.sin(theta) * x
-    return [t_x, t_y]
-
-
-def compute_cluster_length_width_height(points, center_point):
-    spin_theta = get_spin_theta(center_point)
-    cluster_max = np.max(points, axis=0)
-    cluster_min = np.min(points, axis=0)
-    if abs(spin_theta) < 0.05:
-        return cluster_max[0] - cluster_min[0], cluster_max[1] - cluster_min[1], cluster_max[2]
-
-    # 对坐标进行旋转
-    trans_points = []
-    for point in points:
-        trans_point = transfer_point(point[0], point[1], spin_theta)
-        trans_points.append(trans_point)
-
-    # 求旋转后的点云长宽
-    trans_cluster_max = np.max(trans_points, axis=0)
-    trans_cluster_min = np.min(trans_points, axis=0)
-    # print("转换后的长：%f,宽：%f"%(trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1]))
-    return trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1], cluster_max[2]
 
 
 class UnidentifiedCluster:
@@ -59,13 +22,11 @@ class UnidentifiedCluster:
     def __init__(self, points, mix_frame_num, history_data_size):
         self.points = points
         self.points_num = len(points)
-        self.center_point = self.compute_center_point()
+        self.center_point = self.compute_center_point(self.points)
         self.dist = math.sqrt(self.center_point[0]**2+self.center_point[1]**2)
-        self.origin_dist = 3  # 计算和原雷达的距离
         self.doppler_v = self.center_point[3]
         self.avg_snr = self.center_point[4]
         self.sum_snr = self.compute_cluster_sum_snr()
-        self.length, self.width, self.height = self.compute_cluster_length_width_height()
 
         # 多帧融合帧数
         self.mix_frame_num = mix_frame_num
@@ -75,32 +36,72 @@ class UnidentifiedCluster:
         # 对应过去每一帧的人的下标 list从左到右依次是过去第5帧。。。到最近一帧
         self.match_person_list = [[] for i in range(history_data_size)]
 
+        # 用于多块雷达的参数
+
+        self.radar_num = self.get_radar_num()  # 聚类属于哪个雷达探测范围
+        self.origin_radar_points = self.get_points_in_radar_num()  # 在原始雷达下的点云坐标
+        self.origin_radar_center_point = self.compute_center_point(self.origin_radar_points)  # 在原始雷达下的中心坐标
+        self.origin_radar_dist = math.sqrt(self.origin_radar_center_point[0]**2+self.origin_radar_center_point[1]**2)
+        self.length, self.width, self.height = self.compute_cluster_length_width_height(self.origin_radar_points, self.origin_radar_center_point)
+
     def compute_cluster_sum_snr(self):
         sum_snr = 0
         for point in self.points:
             sum_snr += point[4]
         return sum_snr
 
-    def compute_center_point(self):
-        return np.mean(self.points, axis=0)
-
-    def compute_cluster_length_width_height(self):
-        if self.center_point[1] > common.divide_line:
-            # 大于分界线，属于另外一个雷达
-            origin_points = self.points_in_origin_coordinate(self.points)
-            origin_center = np.mean(origin_points, axis=0)
-            self.origin_dist = math.sqrt(origin_center[0]**2+origin_center[1]**2)
-            return compute_cluster_length_width_height(origin_points, origin_center)
-        return  compute_cluster_length_width_height(self.points, self.center_point)
+    @staticmethod
+    def compute_center_point(points):
+        return np.mean(points, axis=0)
 
     @staticmethod
-    def points_in_origin_coordinate(points):
-        origin_points = []
-        for point in points:
-            origin_point = [-1 * point[0], common.radar_2_y - point[1], point[2]]
-            origin_points.append(origin_point)
-        return origin_points
+    def compute_cluster_length_width_height(points, center_point):
+        spin_theta = UnidentifiedCluster.get_spin_theta(center_point)
+        cluster_max = np.max(points, axis=0)
+        cluster_min = np.min(points, axis=0)
+        if abs(spin_theta) < 0.05:
+            return cluster_max[0] - cluster_min[0], cluster_max[1] - cluster_min[1], cluster_max[2]
 
+        # 对坐标进行旋转
+        trans_points = []
+        for point in points:
+            trans_point = UnidentifiedCluster.transfer_point(point[0], point[1], spin_theta)
+            trans_points.append(trans_point)
+
+        # 求旋转后的点云长宽
+        trans_cluster_max = np.max(trans_points, axis=0)
+        trans_cluster_min = np.min(trans_points, axis=0)
+        #print("转换后的长：%f,宽：%f"%(trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1]))
+        return trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1], cluster_max[2]
+
+    @staticmethod
+    def get_spin_theta(center_point):
+        # 求将y的正半轴的中心点旋转到y的正半轴上，需要旋转的角度（用弧度表示）
+        theta = 0
+        if center_point[0] < 0:
+            theta = -1*math.atan(center_point[1]/center_point[0])-math.pi/2
+        if center_point[0] > 0:
+            theta = math.pi/2-math.atan(center_point[1]/center_point[0])
+        return theta
+
+    @staticmethod
+    def transfer_point(x, y, theta):
+        # 将点逆时针旋转theta角度，返回旋转后的二维坐标
+        t_x = math.cos(theta)*x-math.sin(theta)*y
+        t_y = math.cos(theta)*y+math.sin(theta)*x
+        return [t_x, t_y]
+
+    # 用于多个雷达的函数
+    def get_radar_num(self):
+        return get_radar_num(self.center_point[0], self.center_point[1])
+
+    def get_points_in_radar_num(self):
+        transfer_points = []
+        for point in self.points:
+            tem_point = get_coordinate_in_radar_num(self.radar_num, point[0], point[1])
+            tem_point.append(point[2])
+            transfer_points.append(tem_point)
+        return transfer_points
 
 class Cluster:
     def __init__(self, eps, minpts, type, min_cluster_count, cluster_snr_limit):
