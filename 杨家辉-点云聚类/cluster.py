@@ -12,8 +12,46 @@ import sys
 
 sys.path.append('../')
 from common import point_cloud_show_queue
+import common
 from person import Person
 # 显示结束
+
+
+def get_spin_theta(center_point):
+    # 求将y的正半轴的中心点旋转到y的正半轴上，需要旋转的角度（用弧度表示）
+    theta = 0
+    if center_point[0] < 0:
+        theta = -1 * math.atan(center_point[1] / center_point[0]) - math.pi / 2
+    if center_point[0] > 0:
+        theta = math.pi / 2 - math.atan(center_point[1] / center_point[0])
+    return theta
+
+
+def transfer_point(x, y, theta):
+    # 将点逆时针旋转theta角度，返回旋转后的二维坐标
+    t_x = math.cos(theta) * x - math.sin(theta) * y
+    t_y = math.cos(theta) * y + math.sin(theta) * x
+    return [t_x, t_y]
+
+
+def compute_cluster_length_width_height(points, center_point):
+    spin_theta = get_spin_theta(center_point)
+    cluster_max = np.max(points, axis=0)
+    cluster_min = np.min(points, axis=0)
+    if abs(spin_theta) < 0.05:
+        return cluster_max[0] - cluster_min[0], cluster_max[1] - cluster_min[1], cluster_max[2]
+
+    # 对坐标进行旋转
+    trans_points = []
+    for point in points:
+        trans_point = transfer_point(point[0], point[1], spin_theta)
+        trans_points.append(trans_point)
+
+    # 求旋转后的点云长宽
+    trans_cluster_max = np.max(trans_points, axis=0)
+    trans_cluster_min = np.min(trans_points, axis=0)
+    # print("转换后的长：%f,宽：%f"%(trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1]))
+    return trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1], cluster_max[2]
 
 
 class UnidentifiedCluster:
@@ -23,6 +61,7 @@ class UnidentifiedCluster:
         self.points_num = len(points)
         self.center_point = self.compute_center_point()
         self.dist = math.sqrt(self.center_point[0]**2+self.center_point[1]**2)
+        self.origin_dist = 3  # 计算和原雷达的距离
         self.doppler_v = self.center_point[3]
         self.avg_snr = self.center_point[4]
         self.sum_snr = self.compute_cluster_sum_snr()
@@ -46,39 +85,22 @@ class UnidentifiedCluster:
         return np.mean(self.points, axis=0)
 
     def compute_cluster_length_width_height(self):
-        spin_theta = self.get_spin_theta()
-        cluster_max = np.max(self.points, axis=0)
-        cluster_min = np.min(self.points, axis=0)
-        if abs(spin_theta) < 0.05:
-            return cluster_max[0] - cluster_min[0], cluster_max[1] - cluster_min[1], cluster_max[2]
+        if self.center_point[1] > common.divide_line:
+            # 大于分界线，属于另外一个雷达
+            origin_points = self.points_in_origin_coordinate(self.points)
+            origin_center = np.mean(origin_points, axis=0)
+            self.origin_dist = math.sqrt(origin_center[0]**2+origin_center[1]**2)
+            return compute_cluster_length_width_height(origin_points, origin_center)
+        return  compute_cluster_length_width_height(self.points, self.center_point)
 
-        # 对坐标进行旋转
-        trans_points = []
-        for point in self.points:
-            trans_point = self.transfer_point(point[0], point[1], spin_theta)
-            trans_points.append(trans_point)
+    @staticmethod
+    def points_in_origin_coordinate(points):
+        origin_points = []
+        for point in points:
+            origin_point = [-1 * point[0], common.radar_2_y - point[1], point[2]]
+            origin_points.append(origin_point)
+        return origin_points
 
-        # 求旋转后的点云长宽
-        trans_cluster_max = np.max(trans_points, axis=0)
-        trans_cluster_min = np.min(trans_points, axis=0)
-        #print("转换后的长：%f,宽：%f"%(trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1]))
-        return trans_cluster_max[0] - trans_cluster_min[0], trans_cluster_max[1] - trans_cluster_min[1], cluster_max[2]
-
-
-    def get_spin_theta(self):
-        # 求将y的正半轴的中心点旋转到y的正半轴上，需要旋转的角度（用弧度表示）
-        theta = 0
-        if self.center_point[0] < 0:
-            theta = -1*math.atan(self.center_point[1]/self.center_point[0])-math.pi/2
-        if self.center_point[0] > 0:
-            theta = math.pi/2-math.atan(self.center_point[1]/self.center_point[0])
-        return theta
-
-    def transfer_point(self, x, y, theta):
-        # 将点逆时针旋转theta角度，返回旋转后的二维坐标
-        t_x = math.cos(theta)*x-math.sin(theta)*y
-        t_y = math.cos(theta)*y+math.sin(theta)*x
-        return [t_x,t_y]
 
 class Cluster:
     def __init__(self, eps, minpts, type, min_cluster_count, cluster_snr_limit):

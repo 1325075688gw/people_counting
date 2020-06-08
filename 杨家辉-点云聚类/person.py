@@ -1,17 +1,16 @@
 from height import Height
 import math
+import sys
+sys.path.append('../')
+import common
 
 class Person:
     person_length_upper_offset = 0.3
     person_length_lower_offset = -0.1
     # 长度方程
     # 训练数据 然后填进去
-    person_length_coef = 0.115886
-    person_length_intercept = 0.311095
-
-    person_width_min = 0.255964
-    person_width_max = 0.405964
-    person_points = 125.214655
+    radar1_training_result = {'person_length_coef': 0.183394, 'person_length_intercept': 0.554475, 'person_width_max': 0.704638, 'person_width_min': 0.554638, 'person_points': 398}
+    radar2_training_result = {'person_length_coef': 0.212401, 'person_length_intercept': 0.820566, 'person_width_max': 0.943920, 'person_width_min': 0.793920, 'person_points': 498}
     # 训练结束
 
     coefficient_length = 0.4
@@ -89,25 +88,31 @@ class Person:
 
     @staticmethod
     def get_cluster_score2(unidentified_cluster):
+        if unidentified_cluster.center_point[1] > common.radar_2_y:
+            training_result = Person.radar2_training_result
+            dist = unidentified_cluster.origin_dist
+        else:
+            training_result = Person.radar1_training_result
+            dist = unidentified_cluster.dist
         # 宽度打分
-        if unidentified_cluster.dist >= 2:
-            if unidentified_cluster.width < Person.person_width_min:
-                width_score = 1 - (Person.person_width_min - unidentified_cluster.width) / Person.person_width_min
-            elif unidentified_cluster.width > Person.person_width_max:
-                width_score = 1 - abs(unidentified_cluster.width - Person.person_width_max)/Person.person_width_max
+        if unidentified_cluster.dist >= 2.5:
+            if unidentified_cluster.width < training_result['person_width_min']:
+                width_score = 1 - (training_result['person_width_min'] - unidentified_cluster.width) / training_result['person_width_min']
+            elif unidentified_cluster.width > training_result['person_width_max']:
+                width_score = 1 - abs(unidentified_cluster.width - training_result['person_width_max'])/training_result['person_width_max']
             else:
                 width_score = 1
         else:
-            if unidentified_cluster.width < Person.person_width_min:
-                width_score = 1 - (Person.person_width_min - unidentified_cluster.width) / Person.person_width_min
-            elif unidentified_cluster.width > Person.person_width_max + 0.15:
-                width_score = 1 - abs(unidentified_cluster.width - (Person.person_width_max + 0.15))/(Person.person_width_max+ 0.15)
+            if unidentified_cluster.width < training_result['person_width_min']:
+                width_score = 1 - (training_result['person_width_min'] - unidentified_cluster.width) / training_result['person_width_min']
+            elif unidentified_cluster.width > training_result['person_width_max'] + 0.15:
+                width_score = 1 - abs(unidentified_cluster.width - (training_result['person_width_max'] + 0.15))/(training_result['person_width_max']+ 0.15)
             else:
                 width_score = 1
         #print("原始宽度：%f，宽度得分：%f" % (unidentified_cluster.width, width_score))
         # 长度打分
         # 根据长度方程求出标准长度
-        standard_length = Person.person_length_coef * unidentified_cluster.dist + Person.person_length_intercept
+        standard_length = training_result['person_length_coef'] * dist + training_result['person_length_intercept']
         person_length_min = standard_length + Person.person_length_lower_offset
         person_length_max = standard_length + Person.person_length_upper_offset
         if unidentified_cluster.length < standard_length + Person.person_length_lower_offset:
@@ -118,7 +123,7 @@ class Person:
             length_score = 1
         # print("长度得分：%f" % length_score)
         # 点数打分
-        standard_points_score = Person.person_points
+        standard_points_score = training_result['person_points']
         points_num_score = 1 - abs(unidentified_cluster.points_num - standard_points_score)/standard_points_score
         #print("点数得分：%f" % points_num_score)
 
