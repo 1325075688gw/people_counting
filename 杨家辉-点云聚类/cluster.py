@@ -96,12 +96,14 @@ class UnidentifiedCluster:
         return get_radar_num(self.center_point[0], self.center_point[1])
 
 
-class Cluster:
-    def __init__(self, eps, minpts, type, min_cluster_count, cluster_snr_limit):
+class RadarCluster:
+    def __init__(self, eps, minpts, type, min_cluster_count, cluster_snr_limit, radar_index = 0):
         # 聚类参数：eps:核心点半径，minpts：成为核心点需要的最小点数，type:聚类维度
         self.eps = eps
         self.minpts = minpts
         self.type = type
+
+        self.divide_num = [2]  # 可以分割出的人数
 
         # 成为人的聚类最低要求
         self.min_cluster_count = min_cluster_count
@@ -110,6 +112,7 @@ class Cluster:
         # 多帧点云融合
         self.mix_frame_num = 3  # 前后1帧融合，3帧融合；前后2帧融合，5帧融合
         self.frame_data_list = []  # [{"frame_num":1,"points":[]},..]
+        self.mixed_points = []
 
         # 结果，就是这一帧得到的person list
         self.frame_cluster_result = {'frame_num': 0, 'person_list': []}
@@ -121,17 +124,24 @@ class Cluster:
         self.search_dist = [0.35, 0.3]
         #self.search_dist = [0.5, 0.45, 0.4, 0.35, 0.3]
 
+        self.radar_index = radar_index
+
     def do_cluster(self, frame_data):
         # 提取frame_data的帧号和点云数据
         self.frame_cluster_result['frame_num'] = frame_data['frame_num']
         #points = Cluster.frame_data_to_cluster_points(frame_data)
+        points = []
+        # for i in frame_data['point_list']:
+        #     points += frame_data['point_list'][i]
         points = frame_data['point_list']
         #print(points)
         # 进行多帧点云融合，减少空帧，单帧无法得到好的点云的情况
         self.frame_cluster_result['frame_num'], points = self.mix_multi_frame_data(points, frame_data['frame_num'])
+
+        self.mixed_points = points
         # print("帧号:", self.frame_cluster_result['frame_num'])
         # 加入点云显示队列
-        point_cloud_show_queue.put(points)
+
 
         # 将点云聚类得到初始聚类结果，UnidentifiedCluster
         unidentified_cluster_list = self.initial_cluster(points)
@@ -374,7 +384,7 @@ class Cluster:
         # print(test_k_set)
         # 简化操作  直接假定可以分成2,3,4个人
         tags = []
-        for tem_k in range(2, 3):
+        for tem_k in self.divide_num:
             k_tags = GaussianMixture(n_components=tem_k).fit_predict(np_points)
             # try:
             #metrics_score = metrics.calinski_harabasz_score(np_points, k_tags)
