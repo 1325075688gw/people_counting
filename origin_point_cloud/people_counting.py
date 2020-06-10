@@ -1,3 +1,8 @@
+# 作者     ：origin_point_cloud
+# 创建日期 ：2020-05-04  上午 11:49
+# 文件名   ：receive_uart_data_录制数据.py
+
+
 import struct
 import math
 import numpy as np
@@ -12,8 +17,8 @@ from collections import OrderedDict
 from queue import Queue
 from copy import deepcopy
 
-sys.path.append(r"../杨家辉-点云聚类")
-sys.path.append(r"../郭泽中-跟踪、姿态识别")
+sys.path.append(r"../cluster")
+sys.path.append(r"../track")
 
 
 from visual import run
@@ -24,7 +29,10 @@ from qt_show import MainWindow
 from cluster_show import ClusterWindow
 
 
-queue_for_calculate_transfer = Queue()
+queue_for_calculate_polar = Queue()
+queue_for_calculate_cart_transfer = Queue()
+
+start_time = 0
 
 tlv = "2I"
 tlv_struct = struct.Struct(tlv)
@@ -50,7 +58,6 @@ target_list = "I9f"
 target_list_struct = struct.Struct(target_list)
 target_list_size = target_list_struct.size
 
-
 class Point:
     """
     笛卡尔坐标系下的坐标点云
@@ -62,7 +69,6 @@ class Point:
         self.z = z
         self.doppler = doppler
         self.snr = snr
-
 
 class RawPoint:
     """
@@ -77,17 +83,15 @@ class RawPoint:
         self.doppler = doppler
         self.snr = snr
 
-
 class UartParseSDK():
-    def __init__(self, data_port="COM4", user_port="COM3", radar_z=2.0, theta = 17):
-        self.json_data_not_transfer = OrderedDict()
-        self.json_data_transfer = OrderedDict()
+    def __init__(self, data_port, user_port, config_path, radar_z, theta):
+        self.json_data_cart_transfer = OrderedDict()
+        self.json_data_polar = OrderedDict()
         self.magic_word = 0x708050603040102
         self.bytes_data = bytes(1)
         self.max_points = 500
         self.polar = np.zeros((5, self.max_points))
         self.cart_transfer = np.zeros((5, self.max_points))
-        self.cart_not_transfer = np.zeros((5, self.max_points))
         self.detected_target_num = 0
         self.detected_point_num = 0
         self.target_list = np.ones((10, 20)) * (-1)
@@ -98,14 +102,15 @@ class UartParseSDK():
         self.bytes_num = 4666
         self.tlv_header_length = 8
         self.header_length = 48
-        self.save_points_th = Thread()
-        self.receive_data_th = 0
         self.missed_frame_num = 0
-        self.theta = math.radians(10)
-        self.theta_diff = math.radians(90 - 10)
+        self.theta = math.radians(theta)
+        self.theta_diff = math.radians(90-theta)
         self.theta_30 = math.radians(0)
         self.theta_15 = math.radians(0)
-        self.radar_z = 2.13
+        self.radar_z = radar_z
+        self.config_path = config_path
+        self.save_2_queue_flag = True
+        self.current_size = 0
         '''
         port=串口号, 
         baudrate=波特率, 
@@ -115,7 +120,7 @@ class UartParseSDK():
         '''
         self.user_port = serial.Serial(user_port, 115200, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
                                        timeout=0.3)
-        self.data_port = serial.Serial(data_port, 921600 * 2, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
+        self.data_port = serial.Serial(data_port, 921600 * 1, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
                                        timeout=0.025)
 
     def open_port(self):
@@ -141,89 +146,148 @@ class UartParseSDK():
         :return: None
         """
         current_dir = os.path.dirname(__file__)
-        file = open(current_dir + "./ODS_6m_default.cfg", "r+")
+        file = open(current_dir + self.config_path, "r+")
         if file is None:
             print("配置文件不存在!")
             return
         for text in file.readlines():
+            if text == "\n":
+                continue
             print("send config:" + text)
             self.user_port.write(text.encode('utf-8'))
             self.user_port.write('\n'.encode('utf-8'))
             time.sleep(0.2)
         file.close()
 
+    def receive_data_th(self):
+        """
+        读取毫米波雷达采集数据
+        :return: None
+        """
+        global start_time
+        start_time = time.time()/1000
+        while not common.stop_flag:
+            data = self.data_port.read(self.bytes_num)
+            self.bytes_data += data
+            self.bytes_data = self.get_frame(self.bytes_data)
+
     def receive_data_thread(self):
         """
         定义读取毫米波雷达采集数据的线程
         :return:接受数据线程
         """
-        self.receive_data_th = Thread(target=self.receive_data)
-        return self.receive_data_th
+        _receive_data_th = Thread(target=self.receive_data_th)
+        return _receive_data_th
 
-    def receive_data(self):
-        """
-        读取毫米波雷达采集数据
-        :return: None
-        """
-        while 1:
-            data = self.data_port.read(self.bytes_num)
-            self.bytes_data += data
-            self.bytes_data = self.get_frame(self.bytes_data)
-
-    def put_queue_thread(self):
-        """
-        定义将毫米波雷达采集到数据放到队列中，供杨家辉调用【线程】
-        :return: None
-        """
-        self.put_queue_th = Thread(target=self.put_queue)
-        return self.put_queue_th
-
-    def put_queue(self):
+    def put_queue_th(self, save_flag, save_path, second):
         """
         毫米波雷达采集数据，然后将数据push到队列中，供杨家辉调用
         :return:None
         """
-        while 1:
+        start_time_frame = 0
+        end_time_frame = 0
+        while not common.stop_flag:
+            print("frame_num:{0}".format(self.frame_num))
+            if self.frame_num < 70:
+                # print("frame_num:{0}".format(self.frame_num))
+                continue
             point_cloud_num = 0
             point_cloud_list = []
-            cart_transfer = queue_for_calculate_transfer.get().transpose()
-            for index, value in enumerate(cart_transfer):
-                # raw_point = RawPoint(index+1, value[0], value[1], value[2], value[3], value[4]).__dict__
-                point = Point(index + 1, value[0], value[1], value[2], value[3], value[4]).__dict__
-                point_cloud_list.append(point)
+            polar = queue_for_calculate_polar.get().transpose()
+
+            for index, value in enumerate(polar):
+                #     def __init__(self, pid, azi, elev, range2, doppler, snr):
+                raw_point = RawPoint(index+1, value[0], value[1], value[2], value[3], value[4]).__dict__
+                # raw_point = RawPoint(index+1, value[1], value[2], value[0], value[3], value[4]).__dict__
+                point_cloud_list.append(raw_point)
                 point_cloud_num += 1
             temp = dict()
-            t = time.time() * 1000
-            if self.frame_num < 50:
-                continue
 
+            t = time.time() * 1000
+            t = int(round(t))
             temp["frame_num"] = self.frame_num
-            temp["time_stamp"] = int(round(t))
+            temp["time_stamp"] = t
             temp["point_num"] = point_cloud_num
             temp["point_list"] = point_cloud_list
             frame_num = "frame_num_" + str(self.frame_num)
-            frame_dict = {frame_num: temp}
-            print("frame_num:{0}".format(self.frame_num))
-            self.json_data_transfer.update(frame_dict)
-            common.queue_for_cluster_transfer.put(temp)
-            # print("common:{0}".format(common.queue_for_cluster_transfer.qsize()))
+            frame_dict_polar = {frame_num: temp}
 
-            if self.frame_num == 1300:
-                path_dir = "./data/data_5_4,1-7米随意走，2人第5次，进门"
-                if not os.path.isdir(path_dir):
-                    print("创建文件夹：{0}".format(path_dir))
-                    os.makedirs(path_dir)
-                # file = open(path_dir + "/polar_data.json", "w")
-                # json.dump(self.json_data_polar, file)
-                # file.flush()
-                # file.close()
-                # print("极坐标数据写入完毕")
+            point_cloud_num = 0
+            point_cloud_list = []
+            cart_transfer = queue_for_calculate_cart_transfer.get().transpose()
+            for index, value in enumerate(cart_transfer):
+                point = Point(index + 1, value[0], value[1], value[2], value[3], value[4]).__dict__
+                point_cloud_list.append(point)
+                point_cloud_num += 1
+            temp2 = dict()
+            temp2["frame_num"] = self.frame_num
+            temp2["time_stamp"] = t
+            temp2["point_num"] = point_cloud_num
+            temp2["point_list"] = point_cloud_list
+            frame_num = "frame_num_" + str(self.frame_num)
+            frame_dict_cart = {frame_num: temp2}
+            if self.save_2_queue_flag == True:
+                self.json_data_polar.update(frame_dict_polar)
+                self.json_data_cart_transfer.update(frame_dict_cart)
+            common.queue_for_cluster_transfer.put(temp2)
+            self.current_size += 1
 
-                file = open(path_dir + "/cart_transfer_data.json", "w")
-                json.dump(self.json_data_transfer, file)
-                file.flush()
-                file.close()
-                print("转换坐标后的笛卡尔数据写入完毕")
+            if save_flag == -1:
+                continue
+            else:
+                if save_flag == 0:
+                    if self.current_size == self.end_size:
+                    # if self.frame_num == frame_nums:
+                        self.save_2_queue_flag = False
+                        polar_copy = deepcopy(self.json_data_polar)
+                        cart_transfer_copy = deepcopy(self.json_data_cart_transfer)
+                        self.json_data_polar.clear()
+                        self.json_data_cart_transfer.clear()
+                        self.save_data_thread(polar_copy, cart_transfer_copy, save_path).start()
+                elif save_flag == 1:
+                    end_time = time.time()/1000
+                    if end_time-start_time >= second:
+                        self.save_2_queue_flag = False
+                        polar_copy = deepcopy(self.json_data_polar)
+                        cart_transfer_copy = deepcopy(self.json_data_cart_transfer)
+                        self.json_data_polar.clear()
+                        self.json_data_cart_transfer.clear()
+                        self.save_data_thread(polar_copy, cart_transfer_copy, save_path).start()
+                else:
+                    raise Exception("参数设置错误，请设置0,或者1")
+
+    def put_queue_thread(self, save_flag, save_path, second, end_size):
+        """
+        定义将毫米波雷达采集到数据放到队列中，供杨家辉调用【线程】
+        :return: None
+        """
+        self.end_size = end_size
+        _put_queue_th = Thread(target=self.put_queue_th, args=(save_flag, save_path, second))
+        return _put_queue_th
+
+    def save_data_th(self, polar_data, cart_data, save_path):
+        path_dir = save_path
+        common.stop_flag = True
+        if not os.path.isdir(path_dir):
+            print("创建文件夹：{0}".format(path_dir))
+            os.makedirs(path_dir)
+        file = open(path_dir + "/polar_data.json", "w")
+        json.dump(polar_data, file)
+        file.flush()
+        file.close()
+        print("极坐标数据写入完毕")
+
+        file = open(path_dir + "/cart_transfer_data.json", "w")
+        json.dump(cart_data, file)
+        file.flush()
+        file.close()
+        print("转换坐标后的笛卡尔数据写入完毕")
+
+        print("数据录制完成")
+
+    def save_data_thread(self, polar_data, cart_data, save_path):
+        _save_data_thread = Thread(target=self.save_data_th, args = (polar_data, cart_data, save_path))
+        return _save_data_thread
 
     def show_frame(self):
         """
@@ -240,19 +304,22 @@ class UartParseSDK():
         # pass
         cluster_show = Thread(target=analyze_radar_data.cluster_points)
         cluster_show.start()
+        # #
+        cw = ClusterWindow(1000*math.sqrt(3), 500)
+        cw.run()
 
-        # mm = ClusterWindow(1200, 600)
-        # mm.run()
+        # mw = MainWindow(1200, 600)
+        # mw.run()
 
-        run(common.xmin, common.xmax, common.ymax)
+        # run(common.xmin,common.xmax,common.ymax)
 
     def cluster_points_thread(self):
         """
         定义聚类线程
         :return: 聚类线程
         """
-        cluster_points_th = Thread(target=analyze_radar_data.cluster_points)
-        return cluster_points_th
+        _cluster_points_th = Thread(target=analyze_radar_data.cluster_points)
+        return _cluster_points_th
 
     def show_cluster_tracker_thread(self):
         """
@@ -334,7 +401,9 @@ class UartParseSDK():
         """
         point_unit = point_unit_struct.unpack_from(data_in)
         data_in = data_in[point_unit_size:]
+        # 剩余数据总长度
         self.detected_point_num = int((data_length - point_unit_size) / point_size)
+        self.polar = np.zeros((5, self.detected_point_num))
 
         for i in range(self.detected_point_num):
             try:
@@ -346,7 +415,7 @@ class UartParseSDK():
                     azi -= 256
                 if elev >= 128:
                     elev -= 256
-                if doppler >= 65536:
+                if doppler >= 32768:
                     doppler -= 65536
                 # azi
                 self.polar[1, i] = azi * point_unit[1]
@@ -375,7 +444,8 @@ class UartParseSDK():
                 self.theta - self.polar[2, i] + self.theta_15)
         self.cart_transfer[3, :] = self.polar[3, 0:self.detected_point_num]
         self.cart_transfer[4, :] = self.polar[4, 0:self.detected_point_num]
-        queue_for_calculate_transfer.put(deepcopy(self.cart_transfer))
+        queue_for_calculate_polar.put(deepcopy(self.polar))
+        queue_for_calculate_cart_transfer.put(deepcopy(self.cart_transfer))
 
     def parse_target_list(self, data_in, data_length):
         """
@@ -388,6 +458,7 @@ class UartParseSDK():
         target_list = np.empty((13, self.detected_target_num))
         for i in range(self.detected_target_num):
             target_data = target_list_struct.unpack_from(data_in)
+            data_in = data_in[target_list_size:]
             # tid, posx, posy
             target_list[0:3, i] = target_data[0:3]
             # posz
@@ -401,7 +472,10 @@ class UartParseSDK():
             # accz
             target_list[9, i] = target_data[9]
             target_list[10:13, i] = [0, 0, 0]
-            data_in = data_in[target_list_size:]
+
+            # target_list[0:7, i] = target_data[0:7]
+            # target_list[7:10, i] = [0,0,0]
+            # target_list[10:13,i] = target_data[7:10]
         self.target_list = target_list
 
     def parse_target_index(self, data_in, data_length):
@@ -418,12 +492,13 @@ class UartParseSDK():
             data_in = data_in[target_index_size:]
             self.target_index.append(index[0])
 
-
 if __name__ == "__main__":
     # 数据串口, 用户串口, 雷达高度, 雷达倾角
-    uartParseSDK = UartParseSDK("COM4", "COM3", 2.0, 17)
+    # 地下： "COM16", "COM17"
+    # 天上： "COM12", "COM13"
+    uartParseSDK = UartParseSDK("COM3", "COM4", "./radar_parameters.cfg", 2.47, 17)
     uartParseSDK.open_port()
     uartParseSDK.send_config()
     uartParseSDK.receive_data_thread().start()
-    uartParseSDK.put_queue_thread().start()
+    uartParseSDK.put_queue_thread(-1, r"./data/data_5_31,1-8米，单人绕圈，第1次", 0 , 1000).start()
     uartParseSDK.show_frame()
