@@ -1,7 +1,6 @@
 import numpy as np
 import math,sys
 from PyQt5.QtWidgets import QGridLayout,QWidget,QVBoxLayout,QMainWindow
-import common
 import pyqtgraph as pg
 from PyQt5 import QtWidgets
 
@@ -15,12 +14,14 @@ class ApplicationWindow(QWidget):
 
     posture_status={1:'站立',2:'坐着',3:'躺着',4:'行走'}
 
-    def __init__(self,xmin,xmax,range):
+    def __init__(self,xmin,xmax,ymax,detection_range,loc_pos):
         super().__init__()
 
         self.xmin=xmin
         self.xmax=xmax
-        self.range=range
+        self.ymax=ymax
+        self.detection_range=detection_range
+        self.loc_pos=loc_pos
 
         self.people=dict()
 
@@ -29,15 +30,15 @@ class ApplicationWindow(QWidget):
 
     def initUI(self):
 
-        self.setGeometry(200,200,1000,1240)
+        self.setGeometry(200,50,max(1500,950*(self.xmax-self.xmin)/self.ymax),950)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
         self.plt=pg.PlotWidget()
         self.origin_plt=pg.PlotWidget()
-        self.plt.setRange(xRange=[self.xmin,self.xmax],yRange=[0,self.range],padding=0)
-        self.origin_plt.setRange(xRange=[self.xmin,self.xmax],yRange=[0,self.range],padding=0)
-        self.layout.addWidget(self.plt)
-        self.layout.addWidget(self.origin_plt)
+        self.plt.setRange(xRange=[self.xmin,self.xmax],yRange=[0,self.ymax],padding=0)
+        self.origin_plt.setRange(xRange=[self.xmin,self.xmax],yRange=[0,self.ymax],padding=0)
+        self.layout.addWidget(self.plt,0,0)
+        self.layout.addWidget(self.origin_plt,0,1)
         self.plt.setBackground('w')
         self.origin_plt.setBackground('w')
 
@@ -53,22 +54,36 @@ class ApplicationWindow(QWidget):
         self.texts=[]
 
     def paintBorder(self, plt):
-        angle = np.arange(math.pi / 6, math.pi * 5 / 6, math.pi / 60)
-        x = np.cos(angle) * common.detection_range
-        y = np.sin(angle) * common.detection_range
+
+        angle = np.arange(math.pi / 6, math.pi * 5 / 6, math.pi / 600)
+        x = np.cos(angle) * self.detection_range
+        y = np.sin(angle) * self.detection_range
+
+        subx=[]
+        suby=[]
+
+        for i in range(len(x)):
+            if x[i]<=-math.sqrt(self.detection_range**2-self.ymax**2/4) or x[i]>=math.sqrt(self.detection_range**2-self.ymax**2/4):
+                subx.append(x[i])
+                suby.append(y[i])
+
+        x=np.array(subx)
+        y=np.array(suby)
+
         x = np.insert(x, 0, 0)
         y = np.insert(y, 0, 0)
         x = np.insert(x, len(x), 0)
         y = np.insert(y, len(y), 0)
         plt.plot(x, y)
+        plt.plot(x,self.ymax-y)
 
     #每一帧的显示
     def _update_canvas(self):
-        if common.loc_pos.empty():
+        if self.loc_pos.empty():
             return
 
-        locations,postures,cluster_num,assignment,frame_num,origin_clusters=common.loc_pos.get()
-        # locations,heights,cluster_num,assignment,frame_num=common.loc_pos.get()
+        locations,postures,cluster_num,assignment,frame_num,origin_clusters=self.loc_pos.get()
+        # locations,heights,cluster_num,assignment,frame_num,origin_clusters=self.loc_pos.get()
 
         self.setWindowTitle('第'+str(frame_num)+'帧，当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
 
@@ -95,7 +110,6 @@ class ApplicationWindow(QWidget):
             if person not in self.people:
                 index=self.get_color_index()
                 self.people[person]=index
-                # self.people[person]=self.colors[index]
 
             if person in assignment:
                 assigned.append({'pos':assignment[person],'brush':self.colors[self.people[person]]})
@@ -106,9 +120,9 @@ class ApplicationWindow(QWidget):
 
             locs.append({'pos':locations[person],'brush':self.colors[self.people[person]]})
             text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
-            # text=pg.TextItem(str(heights[person]),color='#000000')
+            # text=pg.TextItem(html=('<h1>'+str(heights[person])+'</h1>'),color='#000000')
             # text = pg.TextItem(str(locations[person]), color='#000000')
-            text.setPos(locations[person][0]-0.25,locations[person][1]+0.18)
+            text.setPos(locations[person][0],locations[person][1])
 
             self.texts.append(text)
             self.plt.addItem(text)
@@ -125,7 +139,7 @@ class ApplicationWindow(QWidget):
     def timer_start(self):
         self.timer = pg.Qt.QtCore.QTimer(self)
         self.timer.timeout.connect(self._update_canvas)
-        self.timer.start(20)
+        self.timer.start(10)
 
     def get_color_index(self):
         for i in range(20):
@@ -134,8 +148,8 @@ class ApplicationWindow(QWidget):
                 return i
 
 
-def run(xmin,xmax,ymax):
+def run(xmin,xmax,ymax,detectioin_range,loc_pos):
     qapp = QtWidgets.QApplication(sys.argv)
-    app = ApplicationWindow(xmin, xmax, ymax)
+    app = ApplicationWindow(xmin, xmax, ymax,detectioin_range,loc_pos)
     app.show()
     qapp.exec_()

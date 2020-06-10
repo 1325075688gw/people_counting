@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-import common
+from origin_point_cloud import common
 
 MAX_SAVE_FRAMES = 150  # 用于限制内存占用
 
@@ -55,10 +55,10 @@ class Height():
 
         self.index+=1
 
-        if len(self.height)==common.M:
+        if len(self.height)==common.delay_frames:
             self.real_height=np.mean(self.height)
 
-        if self.index%self.FRAME_NUMBER_FOR_HEIGHT_CAL==0 and self.index<=self.FRAME_NUMBER_FOR_HEIGHT_CAL*5:
+        if self.index%self.FRAME_NUMBER_FOR_HEIGHT_CAL==0 and self.index<=self.FRAME_NUMBER_FOR_HEIGHT_CAL*3:
             self.cal_real_height()
 
         if len(self.height)>MAX_SAVE_FRAMES:
@@ -201,6 +201,7 @@ class Track():
     def get_location(self,radius):
         if len(self.points)<self.M+1:
             return None
+        # return self.points[-self.M-1]
         start=max(-len(self.points),int(-self.M*float(radius+1)/radius-1))
         end=int(-self.M*(radius-1)/radius+2)
         return np.array(self.points)[start:end].mean(axis=0)
