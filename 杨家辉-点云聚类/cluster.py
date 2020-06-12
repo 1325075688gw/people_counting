@@ -19,7 +19,7 @@ from origin_point_cloud.utils import get_coordinate_in_radar_num, get_radar_num
 
 class UnidentifiedCluster:
     # 保存聚好的类,聚好的类在没有被确认为人之前，就是UnidentifiedCluster
-    def __init__(self, points, mix_frame_num, history_data_size):
+    def __init__(self, points, mix_frame_num, history_data_size, radar_index):
         self.points = points
         self.points_num = len(points)
         self.center_point = self.compute_center_point(self.points)
@@ -38,7 +38,7 @@ class UnidentifiedCluster:
 
         # 用于多块雷达的参数
 
-        self.radar_num = self.get_radar_num()  # 聚类属于哪个雷达探测范围
+        self.radar_num = radar_index  # 聚类属于哪个雷达探测范围
         self.origin_radar_points = get_coordinate_in_radar_num(self.radar_num, self.points)  # 在原始雷达下的点云坐标
         self.origin_radar_center_point = self.compute_center_point(self.origin_radar_points)  # 在原始雷达下的中心坐标
         self.origin_radar_dist = math.sqrt(self.origin_radar_center_point[0]**2+self.origin_radar_center_point[1]**2)
@@ -91,10 +91,6 @@ class UnidentifiedCluster:
         t_y = math.cos(theta)*y+math.sin(theta)*x
         return [t_x, t_y]
 
-    # 用于多个雷达的函数
-    def get_radar_num(self):
-        return get_radar_num(self.center_point[0], self.center_point[1])
-
 
 class RadarCluster:
     def __init__(self, eps, minpts, type, min_cluster_count, cluster_snr_limit, radar_index = 0):
@@ -103,7 +99,7 @@ class RadarCluster:
         self.minpts = minpts
         self.type = type
 
-        self.divide_num = [2]  # 可以分割出的人数
+        self.divide_num = []  # 可以分割出的人数
 
         # 成为人的聚类最低要求
         self.min_cluster_count = min_cluster_count
@@ -204,7 +200,7 @@ class RadarCluster:
         # 将分好类的聚类结果，转换为UnidentifiedCluster对象，方便之后分析
         unidentified_cluster_list = []
         for i in cluster_tem_dict:
-            unidentified_cluster_list.append(UnidentifiedCluster(cluster_tem_dict[i], self.mix_frame_num, self.history_data_size))
+            unidentified_cluster_list.append(UnidentifiedCluster(cluster_tem_dict[i], self.mix_frame_num, self.history_data_size, self.radar_index))
 
         return unidentified_cluster_list
 
@@ -427,7 +423,7 @@ class RadarCluster:
 
         if len(people_point_cloud) == 0:
             return False
-        tem_cluster = UnidentifiedCluster(people_point_cloud, self.mix_frame_num, self.history_data_size)
+        tem_cluster = UnidentifiedCluster(people_point_cloud, self.mix_frame_num, self.history_data_size, self.radar_index)
 
         # 聚类中心点横向距离不超过0.5，纵向距离不超过0.2
         if abs(tem_cluster.center_point[0] - unidentified_cluster.center_point[0]) > 0.5 or abs(
@@ -493,7 +489,7 @@ class RadarCluster:
         tem_dict = self.cluster_by_tag(points, tags)
         all_score = 0
         for i in tem_dict:
-            all_score += Person.get_cluster_score2(UnidentifiedCluster(tem_dict[i], self.mix_frame_num, self.history_data_size))
+            all_score += Person.get_cluster_score2(UnidentifiedCluster(tem_dict[i], self.mix_frame_num, self.history_data_size, self.radar_index))
         # 聚类得分
         # if metrics_score > 2000:
         #     metrics_score = 2000

@@ -14,8 +14,8 @@ class Person:
     boundary = 4.5
 
     # 多雷达下训练结果
-    radar_training_result = [{'person_length_coef': 0.183394, 'person_length_intercept': 0.554475, 'person_width_max': 0.704638, 'person_width_min': 0.554638, 'person_points': 398},
-                             {'person_length_coef': 0.212401, 'person_length_intercept': 0.820566, 'person_width_max': 0.943920, 'person_width_min': 0.793920, 'person_points': 498},
+    radar_training_result = [{'person_length_coef': 0.101647, 'person_length_intercept': 0.415693, 'person_width_max': 0.484003, 'person_width_min': 0.334003, 'person_points': 155},
+                             {'person_length_coef': 0.147520, 'person_length_intercept': 0.257608, 'person_width_max': 0.447546, 'person_width_min': 0.297546, 'person_points': 146},
                              {}]
 
     def __init__(self, unidentified_cluster):
