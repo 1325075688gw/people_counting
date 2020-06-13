@@ -2,7 +2,7 @@ import math
 import numpy as np
 import sklearn.cluster as skc
 import json
-from radar_coordinate_transfer import radar2_direction_in_global, compute_direction_vector
+from radar_coordinate_transfer import radar2_direction_in_global, compute_direction_vector, compute_relative_position, radar2_position_in_global
 import matplotlib.pyplot as plt
 from sklearn import linear_model
 
@@ -65,6 +65,7 @@ def compute_radar_direction_vector(radar1_data, radar2_data):
     # 求雷达2相对于雷达1的方向向量
     # 方向向量列表
     direction_vector_list = []
+    position_list = []
 
     radar1_center_list = get_cluster_center_list(radar1_data)
     radar2_center_list = get_cluster_center_list(radar2_data)
@@ -83,9 +84,13 @@ def compute_radar_direction_vector(radar1_data, radar2_data):
         j += 1
         if radar1_center1 == [] or radar1_center2 == [] or radar2_center1 == [] or radar2_center2 == []:
             continue
-        direction_vector_list.append(compute_direction_vector(radar1_center2[0]-radar1_center1[0], radar1_center2[1]-radar1_center1[1],
-                                                              radar2_center2[0]-radar2_center1[0], radar2_center2[1]-radar2_center1[1]))
-    return np.mean(direction_vector_list, axis=0)
+        tem_dv = compute_direction_vector(radar1_center2[0]-radar1_center1[0], radar1_center2[1]-radar1_center1[1],
+                                          radar2_center2[0]-radar2_center1[0], radar2_center2[1]-radar2_center1[1])
+        direction_vector_list.append(tem_dv)
+        position_list.append(compute_relative_position(radar1_center1[0],radar1_center1[1],tem_dv[0],tem_dv[1],radar2_center1[0],radar2_center1[1]))
+        position_list.append(compute_relative_position(radar1_center2[0],radar1_center2[1],tem_dv[0],tem_dv[1],radar2_center2[0],radar2_center2[1]))
+    print(position_list)
+    return np.mean(direction_vector_list, axis=0), np.mean(position_list, axis=0)
 
 
 
@@ -229,20 +234,22 @@ def training_data(radar_data):
           (person_attr[3], person_attr[4], person_attr[1]+0.1, person_attr[1]-0.05, person_attr[2]))
 
 
-def run(x1,y1):
+def run(radar1_x,radar1_y,x1,y1):
     # (x1,y1)为雷达1在世界坐标下的方向向量
-    dir_path = "../training_data/data_6_12,单人前后走,未转换,第6次"
+    dir_path = "../training_data/data_6_13,单人前后走,未转换,第1次"
     filename1 = dir_path + "/0/cart_data.json"
     filename2 = dir_path + "/1/cart_data.json"
     with open(filename1, 'r', encoding='utf-8') as f:
         radar1_data = json.load(f)
     with open(filename2, 'r', encoding='utf-8') as f:
         radar2_data = json.load(f)
-    radar2_direction_in_radar1 = compute_radar_direction_vector(radar1_data, radar2_data)
-    res = radar2_direction_in_global(x1, y1, radar2_direction_in_radar1[0], radar2_direction_in_radar1[1])
+    radar2_direction_in_radar1, radar2_position_in_radar1 = compute_radar_direction_vector(radar1_data, radar2_data)
+    global_direction = radar2_direction_in_global(x1, y1, radar2_direction_in_radar1[0], radar2_direction_in_radar1[1])
     print("雷达2在世界坐标下的方向向量：")
-    print(res)
-
+    print(global_direction)
+    global_position = radar2_position_in_global(radar1_x,radar1_y,x1,y1,radar2_position_in_radar1)
+    print("雷达2在世界坐标下的位置")
+    print(global_position)
     # 运行训练人的特征
     print("radar1:")
     training_data(radar1_data)
@@ -252,6 +259,6 @@ def run(x1,y1):
 
 if __name__ == "__main__":
     # 输入雷达1的方向向量
-    run(1, 1)
+    run(-2.4,0,3, 4)
 
 

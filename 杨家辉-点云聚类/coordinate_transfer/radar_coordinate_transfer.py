@@ -15,6 +15,19 @@ def compute_direction_vector(x1, y1, x2, y2):
     return [np_nv[0][0], np_nv[1][0]]
     # return np.array(dv)[0][0]
 
+
+def compute_relative_position(x0, y0, dx, dy, x1, y1):
+    # 求雷达2相对于雷达1的位置
+    # (x0,y0)为雷达1中的点，(x1,y1)为同样的点在雷达2中的位置，(dx,dy)为雷达2相对于雷达1的方向向量
+
+    # 归一化方向向量
+    d = math.sqrt(dx**2+dy**2)
+    norm_dy = [dx/d, dy/d]  # 雷达2 y轴向量
+    norm_dx = [norm_dy[1], -1*norm_dy[0]] # 雷达2 x轴向量
+    position = [x0-norm_dx[0]*x1-norm_dy[0]*y1, y0-norm_dx[1]*x1-norm_dy[1]*y1]
+    return position
+
+
 def radar_coordinate_transfer(a, b, theta, r):
     # 已知坐标系2的在坐标系1下的方向向量(a,b)，已知坐标系2下某个点A的极坐标(theta, r)，
     # 求A在坐标系1下的直角坐标
@@ -50,6 +63,12 @@ def radar2_direction_in_global(x1, y1, x2, y2):
     point_in_global = radar_coordinate_transfer2(x1, y1, x2, y2)
     return [point_in_global[0], point_in_global[1]]
 
+
+def radar2_position_in_global(radar1_x, radar1_y, radar1_dx,radar1_dy, radar2_position_in_radar1):
+    tem = radar_coordinate_transfer2(radar1_dx,radar1_dy,radar2_position_in_radar1[0],radar2_position_in_radar1[1])
+    radar2_global_position = [radar1_x+tem[0],radar1_y+tem[1]]
+    return radar2_global_position
+
+
 if __name__ == "__main__":
-    # print(radar2_direction_in_global(1,1,0.2,-0.74))
     pass
