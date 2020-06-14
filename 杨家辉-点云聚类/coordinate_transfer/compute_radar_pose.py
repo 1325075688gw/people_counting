@@ -89,9 +89,8 @@ def compute_radar_direction_vector(radar1_data, radar2_data):
         direction_vector_list.append(tem_dv)
         position_list.append(compute_relative_position(radar1_center1[0],radar1_center1[1],tem_dv[0],tem_dv[1],radar2_center1[0],radar2_center1[1]))
         position_list.append(compute_relative_position(radar1_center2[0],radar1_center2[1],tem_dv[0],tem_dv[1],radar2_center2[0],radar2_center2[1]))
-    # print(position_list)
+    print(position_list)
     return np.mean(direction_vector_list, axis=0), np.mean(position_list, axis=0)
-
 
 
 
@@ -234,9 +233,8 @@ def training_data(radar_data):
           (person_attr[3], person_attr[4], person_attr[1]+0.1, person_attr[1]-0.05, person_attr[2]))
 
 
-def run(radar1_x,radar1_y,x1,y1,filenanme):
+def run(radar1_x,radar1_y,x1,y1,dir_path):
     # (x1,y1)为雷达1在世界坐标下的方向向量
-    dir_path = "../training_data/"+filenanme
     filename1 = dir_path + "/0/cart_data.json"
     filename2 = dir_path + "/1/cart_data.json"
     with open(filename1, 'r', encoding='utf-8') as f:
@@ -276,8 +274,7 @@ def compute_radar1_direction(filenanme):
     print("雷达1的方向向量:\n", radar1_direction)
 
 
-def run_one_radar(filename):
-    dir_path = "../training_data/"+filename
+def run_one_radar(dir_path):
     filename1 = dir_path + "/0/cart_data.json"
     with open(filename1, 'r', encoding='utf-8') as f:
         radar1_data = json.load(f)
@@ -285,16 +282,25 @@ def run_one_radar(filename):
     training_data(radar1_data)
 
 
+def training_radar3(dir_path):
+    filename = dir_path + "/2/cart_data.json"
+    with open(filename, 'r', encoding='utf-8') as f:
+        radar_data = json.load(f)
+    print("radar3:")
+    training_data(radar_data)
+
 if __name__ == "__main__":
-    filename = "data_6_14,单人前后走,未转换,第10次"
+    dir_path = "../data/gzz/"
+    filename = "data_6_12,单人前后走,未转换,第6次"
+    path = dir_path + filename
+
     # 求雷达1的方向向量
     #compute_radar1_direction(filename)
-    # 输入雷达1的位置和方向向量
-    #run(-2.4,0,3, 4,filename)
+    # 输入雷达1的位置和方向向量, 计算雷达2的位置，方向，和雷达1,2的训练属性
+    run(-2.4, 0, 3, 4, path)
+
+    # 训练雷达3
+    #training_radar3(dir_path)
 
     # 只有一个雷达训练
-    run_one_radar(filename)
-
-
-
-
+    # run_one_radar(filename)
