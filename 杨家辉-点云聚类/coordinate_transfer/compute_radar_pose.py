@@ -276,12 +276,24 @@ def compute_radar1_direction(filenanme):
     print("雷达1的方向向量:\n", radar1_direction)
 
 
+def run_one_radar(filename):
+    dir_path = "../training_data/"+filename
+    filename1 = dir_path + "/0/cart_data.json"
+    with open(filename1, 'r', encoding='utf-8') as f:
+        radar1_data = json.load(f)
+    print("radar1:")
+    training_data(radar1_data)
+
+
 if __name__ == "__main__":
-    filename = "data_6_13,单人前后走,未转换,第1次"
+    filename = "data_6_14,单人前后走,未转换,第10次"
     # 求雷达1的方向向量
-    compute_radar1_direction(filename)
+    #compute_radar1_direction(filename)
     # 输入雷达1的位置和方向向量
-    run(-2.4,0,3, 4,filename)
+    #run(-2.4,0,3, 4,filename)
+
+    # 只有一个雷达训练
+    run_one_radar(filename)
 
 
 
