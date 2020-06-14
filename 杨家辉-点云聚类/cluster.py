@@ -13,7 +13,7 @@ import sys
 sys.path.append('../')
 from common import point_cloud_show_queue
 from person import Person
-from origin_point_cloud.utils import get_coordinate_in_radar_num, get_radar_num
+from origin_point_cloud.utils import get_coordinate_in_radar_num
 # 显示结束
 
 
@@ -99,7 +99,8 @@ class RadarCluster:
         self.minpts = minpts
         self.type = type
 
-        self.divide_num = []  # 可以分割出的人数
+        self.score_offset = 0.15
+        self.divide_num = [2]  # 可以分割出的人数
 
         # 成为人的聚类最低要求
         self.min_cluster_count = min_cluster_count
@@ -395,7 +396,7 @@ class RadarCluster:
                 people_num = tem_k
         origin_score = Person.get_cluster_score2(unidentified_cluster)
         # print("分割前得分：%f,分割后得分：%f" % (origin_score, score))
-        if score-0.15 < origin_score:  #0,75
+        if score-self.score_offset < origin_score:  #0,75
             # print("分数太低 不分割")
             k = 1
         else:
