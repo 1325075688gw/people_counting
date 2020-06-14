@@ -12,7 +12,9 @@ def compute_direction_vector(x1, y1, x2, y2):
     dv = np.linalg.inv(C)*v1
     # 类型转换
     np_nv = np.array(dv)
-    return [np_nv[0][0], np_nv[1][0]]
+    # 归一化
+    norm_d = math.sqrt(np_nv[0][0]**2+np_nv[1][0]**2)
+    return [np_nv[0][0]/norm_d, np_nv[1][0]/norm_d]
     # return np.array(dv)[0][0]
 
 
@@ -71,4 +73,5 @@ def radar2_position_in_global(radar1_x, radar1_y, radar1_dx,radar1_dy, radar2_po
 
 
 if __name__ == "__main__":
+    print(compute_direction_vector(0,math.sqrt(5),3,4))
     pass

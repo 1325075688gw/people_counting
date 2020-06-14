@@ -89,7 +89,7 @@ def compute_radar_direction_vector(radar1_data, radar2_data):
         direction_vector_list.append(tem_dv)
         position_list.append(compute_relative_position(radar1_center1[0],radar1_center1[1],tem_dv[0],tem_dv[1],radar2_center1[0],radar2_center1[1]))
         position_list.append(compute_relative_position(radar1_center2[0],radar1_center2[1],tem_dv[0],tem_dv[1],radar2_center2[0],radar2_center2[1]))
-    print(position_list)
+    # print(position_list)
     return np.mean(direction_vector_list, axis=0), np.mean(position_list, axis=0)
 
 
@@ -234,9 +234,9 @@ def training_data(radar_data):
           (person_attr[3], person_attr[4], person_attr[1]+0.1, person_attr[1]-0.05, person_attr[2]))
 
 
-def run(radar1_x,radar1_y,x1,y1):
+def run(radar1_x,radar1_y,x1,y1,filenanme):
     # (x1,y1)为雷达1在世界坐标下的方向向量
-    dir_path = "../training_data/data_6_13,单人前后走,未转换,第1次"
+    dir_path = "../training_data/"+filenanme
     filename1 = dir_path + "/0/cart_data.json"
     filename2 = dir_path + "/1/cart_data.json"
     with open(filename1, 'r', encoding='utf-8') as f:
@@ -257,8 +257,32 @@ def run(radar1_x,radar1_y,x1,y1):
     training_data(radar2_data)
 
 
+def compute_radar1_direction(filenanme):
+    dir_path = "../training_data/"+filenanme
+    filename1 = dir_path + "/0/cart_data.json"
+    #filename2 = dir_path + "/1/cart_data.json"
+    with open(filename1, 'r', encoding='utf-8') as f:
+        radar1_data = json.load(f)
+
+    radar1_center_list = get_cluster_center_list(radar1_data)
+    radar1_direction_list = []
+    for center in radar1_center_list:
+        if center == []:
+            continue
+        d = math.sqrt(center[0]**2+center[1]**2)
+        radar1_direction_list.append(compute_direction_vector(d,0,center[0],center[1]))
+
+    radar1_direction = np.mean(radar1_direction_list,axis=0)
+    print("雷达1的方向向量:\n", radar1_direction)
+
+
 if __name__ == "__main__":
-    # 输入雷达1的方向向量
-    run(-2.4,0,3, 4)
+    filename = "data_6_13,单人前后走,未转换,第1次"
+    # 求雷达1的方向向量
+    compute_radar1_direction(filename)
+    # 输入雷达1的位置和方向向量
+    run(-2.4,0,3, 4,filename)
+
+
 
 
