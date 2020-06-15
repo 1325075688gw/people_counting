@@ -84,12 +84,17 @@ def compute_radar_direction_vector(radar1_data, radar2_data):
         j += 1
         if radar1_center1 == [] or radar1_center2 == [] or radar2_center1 == [] or radar2_center2 == []:
             continue
+        dist1 = math.sqrt((radar1_center1[0]-radar1_center2[0])**2+(radar1_center1[1]-radar1_center2[1])**2)
+        dist2 = math.sqrt((radar2_center1[0]-radar2_center2[0])**2+(radar2_center1[1]-radar2_center2[1])**2)
+        if abs(dist1-dist2) > 0.05:
+            continue
+        #print(math.sqrt((radar1_center1[0]-radar1_center2[0])**2+(radar1_center1[1]-radar1_center2[1])**2),math.sqrt((radar2_center1[0]-radar2_center2[0])**2+(radar2_center1[1]-radar2_center2[1])**2))
         tem_dv = compute_direction_vector(radar1_center2[0]-radar1_center1[0], radar1_center2[1]-radar1_center1[1],
                                           radar2_center2[0]-radar2_center1[0], radar2_center2[1]-radar2_center1[1])
         direction_vector_list.append(tem_dv)
         position_list.append(compute_relative_position(radar1_center1[0],radar1_center1[1],tem_dv[0],tem_dv[1],radar2_center1[0],radar2_center1[1]))
         position_list.append(compute_relative_position(radar1_center2[0],radar1_center2[1],tem_dv[0],tem_dv[1],radar2_center2[0],radar2_center2[1]))
-    print(position_list)
+    #print(position_list)
     return np.mean(direction_vector_list, axis=0), np.mean(position_list, axis=0)
 
 
@@ -300,7 +305,7 @@ if __name__ == "__main__":
     run(-2.4, 0, 3, 4, path)
 
     # 训练雷达3
-    #training_radar3(dir_path)
+    training_radar3(path)
 
     # 只有一个雷达训练
     # run_one_radar(filename)
