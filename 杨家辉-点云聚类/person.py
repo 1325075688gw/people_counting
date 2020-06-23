@@ -1,5 +1,8 @@
 from height import Height
 import math
+import sys
+sys.path.append("../")
+import cluster_common
 
 class Person:
     person_length_upper_offset = 0.3
@@ -14,9 +17,8 @@ class Person:
     boundary = 4.5
 
     # 多雷达下训练结果
-    radar_training_result = [{'person_length_coef': 0.101647, 'person_length_intercept': 0.415693, 'person_width_max': 0.484003, 'person_width_min': 0.334003, 'person_points': 155},
-                             {'person_length_coef': 0.147520, 'person_length_intercept': 0.257608, 'person_width_max': 0.447546, 'person_width_min': 0.297546, 'person_points': 146},
-                             {}]
+    # 3
+    radar_training_result = cluster_common.radar_training_result
 
     def __init__(self, unidentified_cluster):
         self.points = unidentified_cluster.points
@@ -38,7 +40,7 @@ class Person:
     @staticmethod
     def check_person(unidentified_cluster, min_cluster_count, cluster_snr_limit):
         # 根据输入的点云聚类，判断点云: 不是人  返回0  一个人  返回1  多人 返回2
-
+        training_result = Person.radar_training_result[unidentified_cluster.radar_num]
         # 在边界范围外时，不做噪声判断
         if unidentified_cluster.origin_radar_dist < Person.boundary:
             # 点云snr和太小，或者点数太少，不是人
@@ -51,38 +53,13 @@ class Person:
                 return 0
             if unidentified_cluster.points_num < min_cluster_count:
                 return 0
-
-        if unidentified_cluster.length < 0.95 and unidentified_cluster.width < 0.55:
-            return 1
-        if unidentified_cluster.length < 0.6 and unidentified_cluster.width < 0.6:
+        standard_length = training_result['person_length_coef'] * unidentified_cluster.origin_radar_dist + \
+                          training_result['person_length_intercept']
+        if unidentified_cluster.length < standard_length and \
+                unidentified_cluster.width < (training_result['person_width_min']+training_result['person_width_max'])/2:
             return 1
 
         return 2
-
-    @staticmethod
-    def get_cluster_score(unidentified_cluster):
-        # 根据先验知识对点云打分，比较像一个人的点云分数较高，60，为基本满足一个人的点云
-        score = 0
-        # 长度在0.6~1.1之间，宽度在0.3~0.55之间，给80分
-        if 0.7 < unidentified_cluster.length < 1 and 0.35 < unidentified_cluster.width < 0.5:
-            return 80
-
-        if 0.59 < unidentified_cluster.length < 1.1 and 0.25 < unidentified_cluster.width < 0.6:
-            return 70
-
-        if 0.5 < unidentified_cluster.length < 1.2 and 0.2 < unidentified_cluster.width < 0.6:
-            return 60
-
-        if 0.4 < unidentified_cluster.length < 1.3 and 0.2 < unidentified_cluster.width < 0.7:
-            return 50
-
-        if 0.4 < unidentified_cluster.length < 1.4 and 0.15 < unidentified_cluster.width < 0.75:
-            return 40
-
-        if unidentified_cluster.length > 1.5 or unidentified_cluster.width > 0.9:
-            return 10
-
-        return 25
 
     @staticmethod
     def get_cluster_score2(unidentified_cluster):

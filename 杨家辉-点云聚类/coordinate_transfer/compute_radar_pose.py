@@ -5,6 +5,9 @@ import json
 from radar_coordinate_transfer import radar2_direction_in_global, compute_direction_vector, compute_relative_position, radar2_position_in_global
 import matplotlib.pyplot as plt
 from sklearn import linear_model
+import sys
+sys.path.append("../")
+import cluster_common
 
 
 # 聚类求解
@@ -144,7 +147,7 @@ def read_and_cluster(radar_data):
     points_num_list = []
     mix_points_list = []
     dist_list = []
-    mix_num = 3
+    mix_num = cluster_common.mixed_num
     for k in radar_data:
         frame_data = radar_data[k]
 

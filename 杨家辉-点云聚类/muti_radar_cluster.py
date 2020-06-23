@@ -2,13 +2,14 @@ from cluster import  RadarCluster
 import sys
 sys.path.append('../')
 from common import point_cloud_show_queue
+import cluster_common
 
 class Cluster:
-    def __init__(self, eps, minpts, type, min_cluster_count, cluster_snr_limit, radar_num=2):
+    def __init__(self, eps, minpts, type, min_cluster_count, cluster_snr_limit, radar_num=3):
         self.cluster_list = []
-        self.radar_num = radar_num
+        self.radar_num = cluster_common.radar_num
         for i in range(self.radar_num):
-            self.cluster_list.append(RadarCluster(eps=0.25, minpts=5, type='2D', min_cluster_count=20, cluster_snr_limit=120, radar_index = i))
+            self.cluster_list.append(RadarCluster(eps=eps, minpts=minpts, type=type, min_cluster_count=min_cluster_count, cluster_snr_limit=cluster_snr_limit, radar_index = i))
 
         self.frame_cluster_result = {'frame_num': 0, 'person_list': []}
 
@@ -25,13 +26,13 @@ class Cluster:
     def get_height_list(self):
         height_dict = {}
         for i in range(len(self.cluster_list)):
-            height_dict[i] = self.cluster_list[i].get_height_list
+            height_dict[i] = self.cluster_list[i].get_height_list()
         return height_dict
 
     def get_cluster_center_point_list(self):
         center_point_dict = {}
         for i in range(len(self.cluster_list)):
-            center_point_dict[i] = self.cluster_list[i].get_cluster_center_point_list
+            center_point_dict[i] = self.cluster_list[i].get_cluster_center_point_list()
         return center_point_dict
 
     def update_frame_cluster_result(self):

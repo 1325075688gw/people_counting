@@ -1,21 +1,16 @@
 import numpy as np  # 数据结构
 import sklearn.cluster as skc
-from sklearn.cluster import KMeans
 import math
-import copy
-import time
 from sklearn.mixture.gaussian_mixture import GaussianMixture
-from sklearn import metrics
 
 # 显示聚类点云
 import sys
 
 sys.path.append('../')
-from common import point_cloud_show_queue
 from person import Person
 from origin_point_cloud.utils import get_coordinate_in_radar_num
 # 显示结束
-
+import cluster_common
 
 class UnidentifiedCluster:
     # 保存聚好的类,聚好的类在没有被确认为人之前，就是UnidentifiedCluster
@@ -102,15 +97,15 @@ class RadarCluster:
         self.minpts = minpts
         self.type = type
 
-        self.score_offset = 0.15
-        self.divide_num = [2]  # 可以分割出的人数
+        self.score_offset = cluster_common.score_offset
+        self.divide_num = cluster_common.divide_num  # 可以分割出的人数
 
         # 成为人的聚类最低要求
         self.min_cluster_count = min_cluster_count
         self.cluster_snr_limit = cluster_snr_limit
 
         # 多帧点云融合
-        self.mix_frame_num = 3  # 前后1帧融合，3帧融合；前后2帧融合，5帧融合
+        self.mix_frame_num = cluster_common.mixed_num  # 前后1帧融合，3帧融合；前后2帧融合，5帧融合
         self.frame_data_list = []  # [{"frame_num":1,"points":[]},..]
         self.mixed_points = []
 
@@ -153,15 +148,6 @@ class RadarCluster:
 
         self.save_result(person_list)
 
-    @staticmethod
-    def frame_data_to_cluster_points(frame_data):
-        # 提取每一帧的数据并转换成列表点云的格式
-        points = []
-        for data in frame_data['point_list']:
-            point = [data['x'], data['y'], data['z'], data['doppler'], data['snr']]
-            points.append(point)
-        return points
-
     def mix_multi_frame_data(self, points, frame_num):
         # 进行多帧点云融合
         frame_data_dict = {'frame_num': frame_num, 'points': points}
@@ -182,7 +168,6 @@ class RadarCluster:
         # 用dbscan对点云聚类，得到聚类标签
         tags = self.dbscan_official(points)
         return self.trans_points_to_unidentified_cluster_list(points, tags)
-
 
     def dbscan_official(self, data):
         # 根据类型调用dbscan库
@@ -246,6 +231,7 @@ class RadarCluster:
             # 如果这个类 无法转换成人 但是在过去有出现过，也将他转换成人
             if check_result == 0 and unidentified_cluster.appear_time >= 1:
             # if True:
+                print("过去有，不过滤")
                 person_list.append(Person(unidentified_cluster))
                 continue
 
@@ -256,6 +242,8 @@ class RadarCluster:
             # 如果这个类无法确定能转换成一个人，类比较大，对其尝试分割
             if check_result == 2:
                 divided_cluster_list = self.divide_cluster(unidentified_cluster)
+                if len(divided_cluster_list) > 1:
+                    print("分割")
                 for cluster in divided_cluster_list:
                     person_list.append(Person(cluster))
         return person_list
@@ -308,72 +296,6 @@ class RadarCluster:
             center_point_list.append([person.center_point[0], person.center_point[1]])
         return center_point_list
 
-    def divide_cluster_origin(self, unidentified_cluster):
-        k = 1
-        np_points = np.array(unidentified_cluster.points)[:, :2]
-        # 如果能用上一帧进行分割，用上一帧的k进行分割
-        time_start = time.time() * 1000
-        if self.satisfy_divide_by_last_history_data(unidentified_cluster):
-            k = len(unidentified_cluster.match_person_list[self.history_data_size-1])
-            # print("用上一帧分割",k)
-        # 如果不能用上一帧的进行分割，则综合判断点云，找出最合适的k
-        else:
-            # 根据多个判定条件，得到所有可能的分割数k,
-            # 简化操作  直接假定可以分成2,3,4个人
-            test_k_set = set()
-
-            # 根据人头分割，找到k
-            topz_points_k = self.get_k_by_topz_points(unidentified_cluster)
-            #print("人头分割的k:", topz_points_k)
-            if topz_points_k >= 2:
-                test_k_set.add(topz_points_k)
-
-            # 根据历史出现最多次数，找到k
-            history_times_list = self.get_k_by_history_people_num(unidentified_cluster)
-            for i in history_times_list:
-                #print("历史出现最多次数的k:", i)
-                test_k_set.add(i)
-
-            # 人头分割可能找不到3,4 手动加入3,4
-            test_k_set.add(3)
-            test_k_set.add(4)
-            # 根据长宽比等先验知识，找到k
-
-            # 依次用高斯混合尝试这些分割，然后选择其中分数最高的k
-            score = 0
-            people_num = 1
-            # print(test_k_set)
-            for tem_k in test_k_set:
-            # 简化操作  直接假定可以分成2,3,4个人
-            # for tem_k in range(2, 5):
-                k_tags = GaussianMixture(n_components=tem_k).fit_predict(np_points)
-                # try:
-                metrics_score = metrics.calinski_harabasz_score(np_points, k_tags)
-                # print("人数：%d,分数：%f" % (tem_k, metrics_score))
-                tem_score = self.get_points_score(unidentified_cluster.points, k_tags, metrics_score)
-                # print("tem_score:%f" % tem_score)
-                # except:
-                #     continue
-                if tem_score > score:
-                    score = tem_score
-                    people_num = tem_k
-            if score-0.1 < Person.get_cluster_score2(unidentified_cluster):  #0,75
-                # print("分数太低 不分割")
-                k = 1
-            else:
-                k = people_num
-            # print("最可信的k：", k)
-
-        # 当只有一个人时，直接返回
-        if k == 1:
-            return [unidentified_cluster]
-        # 当判断出有k个人时，用高斯混合分割
-        # tags = KMeans(k).fit_predict(np_points)
-        tags = GaussianMixture(n_components=k).fit_predict(np_points)
-        time_end = time.time() * 1000
-        # print("函数计时", time_end - time_start)
-        return self.trans_points_to_unidentified_cluster_list(unidentified_cluster.points, tags)
-
     def divide_cluster(self, unidentified_cluster):
         k = 1
         np_points = np.array(unidentified_cluster.points)[:, :2]
@@ -386,9 +308,6 @@ class RadarCluster:
         tags = []
         for tem_k in self.divide_num:
             k_tags = GaussianMixture(n_components=tem_k).fit_predict(np_points)
-            # try:
-            #metrics_score = metrics.calinski_harabasz_score(np_points, k_tags)
-            # print("人数：%d,分数：%f" % (tem_k, metrics_score))
             tem_score = self.get_points_score(unidentified_cluster.points, k_tags)
             # print("tem_score:%f" % tem_score)
             # except:
@@ -397,96 +316,18 @@ class RadarCluster:
                 tags[:] = k_tags
                 score = tem_score
                 people_num = tem_k
+            else:
+                break
         origin_score = Person.get_cluster_score2(unidentified_cluster)
-        # print("分割前得分：%f,分割后得分：%f" % (origin_score, score))
         if score-self.score_offset < origin_score:  #0,75
-            # print("分数太低 不分割")
             k = 1
         else:
-            # print("分割前分数：%f,分割后分数：%f" % (origin_score, score))
             k = people_num
-            # print("最可信的k：", k)
 
         # 当只有一个人时，直接返回
-        if k == 1:
+        if k == 1 or self.radar_index == 2:
             return [unidentified_cluster]
         return self.trans_points_to_unidentified_cluster_list(unidentified_cluster.points, tags)
-
-    def satisfy_divide_by_last_history_data(self, unidentified_cluster):
-        # 将聚类对应上一帧的人的点云合并，然后根据聚类点云和他对应的上一帧的人的总点云相似度，判断是否能分割
-        # 找到聚类对应上一帧的人的id
-        last_history_person_id = unidentified_cluster.match_person_list[self.history_data_size-1]
-
-        # 如果上一帧只匹配到了小于2人，返回false
-        if len(last_history_person_id) < 2:
-            return False
-        # 将上一帧的人的点云融合
-        people_point_cloud = []
-        for pid in last_history_person_id:
-            people_point_cloud += self.history_frame_cluster_result[self.history_data_size-1][pid].points
-
-        if len(people_point_cloud) == 0:
-            return False
-        tem_cluster = UnidentifiedCluster(people_point_cloud, self.mix_frame_num, self.history_data_size, self.radar_index)
-
-        # 聚类中心点横向距离不超过0.5，纵向距离不超过0.2
-        if abs(tem_cluster.center_point[0] - unidentified_cluster.center_point[0]) > 0.5 or abs(
-                tem_cluster.center_point[1] - unidentified_cluster.center_point[1]) > 0.2:
-            # print("不满足聚类横向和纵向距离要求")
-            return False
-
-        # 聚类的宽度和长度中，应该和对应人的长，宽类似
-        if abs(tem_cluster.length - unidentified_cluster.length) > 0.8 or abs(tem_cluster.width - unidentified_cluster.width) > 0.45:
-            # print("不满足长宽变化要求，无法分割：长：%f，宽：%f" % (tem_cluster.length - unidentified_cluster.length, tem_cluster.width - unidentified_cluster.width))
-            return False
-        return True
-
-    def get_k_by_topz_points(self, unidentified_cluster):
-        points = copy.deepcopy(unidentified_cluster.points)
-        k = int(len(points) * 0.1) + 1  # 计算前10%点
-        points.sort(key=lambda x: x[2], reverse=True)
-        topz_points = [points[i] for i in range(k)]
-        X = np.array(topz_points)[:, :2]
-        db = skc.DBSCAN(eps=self.eps, min_samples=self.minpts).fit(X)
-        tags = db.labels_
-        topz_cluster_dict = self.cluster_by_tag(points, tags)
-        self.cluster_filter_by_noise(topz_cluster_dict)
-        # 如果有人头中心点距离较近，则不进行分割
-        center_point_list = []
-        for i in topz_cluster_dict:
-            center_point = np.mean(topz_cluster_dict[i], axis=0)
-            center_point_list.append(center_point)
-        # 计算相邻中心点的距离，有距离小于0.5的两个中心点，不进行分割
-        dist_list = []
-        if len(center_point_list) >= 2:
-            for i in range(1, len(center_point_list)):
-                dist_list.append(math.sqrt((center_point_list[i - 1][0] - center_point_list[i][0]) ** 2 +
-                                           (center_point_list[i - 1][1] - center_point_list[i][1]) ** 2))
-        for dist in dist_list:
-            if dist < 0.5:
-                # print("距离太近  不通过人头分")
-                return -1
-        return len(topz_cluster_dict)
-
-    def get_k_by_history_people_num(self, unidentified_cluster):
-        # 找到过去帧中，根据当前类匹配的人数中，出现最多次数的人数
-        history_people_num = {}
-        for people_id in unidentified_cluster.match_person_list:
-            if len(people_id) in history_people_num:
-                history_people_num[len(people_id)] += 1
-            else:
-                history_people_num[len(people_id)] = 0
-        times_max = 0
-        for i in history_people_num:
-            if history_people_num[i] > times_max:
-                times_max = history_people_num[i]
-        k_list = []
-        if times_max == 0:
-            return []
-        for i in history_people_num:
-            if history_people_num[i] == times_max and i > 1:
-                k_list.append(i)
-        return k_list
 
     def get_points_score(self, points, tags):
         # 先对点分类
@@ -501,11 +342,3 @@ class RadarCluster:
         # print("该聚类得分：%f" % cluster_score)
         # print("平均得分：%f" % (all_score/len(tem_dict)))
         return all_score/len(tem_dict)
-
-    def get_k_by_length_and_width(self, unidentified_cluster):
-        k = 0
-        add_length = Person.person_length - 0.25
-        add_width = Person.person_width
-        k += 1
-
-
