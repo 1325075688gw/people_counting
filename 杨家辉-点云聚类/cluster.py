@@ -231,7 +231,7 @@ class RadarCluster:
             # 如果这个类 无法转换成人 但是在过去有出现过，也将他转换成人
             if check_result == 0 and unidentified_cluster.appear_time >= 1:
             # if True:
-                print("过去有，不过滤")
+            # print("过去有，不过滤")
                 person_list.append(Person(unidentified_cluster))
                 continue
 
@@ -242,8 +242,8 @@ class RadarCluster:
             # 如果这个类无法确定能转换成一个人，类比较大，对其尝试分割
             if check_result == 2:
                 divided_cluster_list = self.divide_cluster(unidentified_cluster)
-                if len(divided_cluster_list) > 1:
-                    print("分割")
+                # if len(divided_cluster_list) > 1:
+                #     print("分割")
                 for cluster in divided_cluster_list:
                     person_list.append(Person(cluster))
         return person_list
