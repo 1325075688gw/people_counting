@@ -12,7 +12,7 @@ class Cluster:
 
         self.frame_cluster_result = {'frame_num': 0, 'person_list': []}
 
-    def do_cluster(self, frame_data,point_cloud_show_queue):
+    def do_cluster(self, frame_data):
         radar_frame_data = {}
         for i in range(len(self.cluster_list)):
             radar_frame_data['frame_num'] = frame_data['frame_num']
@@ -20,7 +20,6 @@ class Cluster:
             self.cluster_list[i].do_cluster(radar_frame_data)
 
         self.update_frame_cluster_result()
-        self.put_points_show(point_cloud_show_queue)
 
     def get_height_list(self):
         height_dict = {}

@@ -7,6 +7,7 @@ import os
 import common
 import analyze_radar_data
 from Track.visual_all import run_visual
+from Origin_Point_Cloud.visual_four import visual4plots
 
 def read_data():
     pathdir='data/data_6_26，ODS6m,7人，两块板子，第1次/'
@@ -32,8 +33,9 @@ def start_spy(queue_for_cluster_transfer,loc_pos):
     multiprocessing.Process(target=spy_queue,args=(queue_for_cluster_transfer,loc_pos,)).start()
 
 def start_visual():
-    run_visual(common.xmin,common.xmax,common.ymax,common.detection_range,common.loc_pos)
+    # run_visual(common.xmin,common.xmax,common.ymax,common.detection_range,common.loc_pos)
     # multiprocessing.Process(target=run_visual,args=(common.xmin,common.xmax,common.ymax,common.detection_range,common.loc_pos,)).start()
+    multiprocessing.Process(target=visual4plots,args=(common.loc_pos,common.point_cloud_show_queue,common.cluster_show_queue,)).start()
 
 if __name__=='__main__':
     # start_spy(common.queue_for_cluster_transfer,common.loc_pos)

@@ -38,13 +38,15 @@ def cluster_points(show_flag,queue_for_cluster_transfer,cluster_show_queue,loc_p
         frame_data = queue_for_cluster_transfer.get()
 
         try:
-            cl.do_cluster(frame_data,point_cloud_show_queue)
+            cl.do_cluster(frame_data)
         except:
             print('聚类出错')
 
+        frame_cluster_result = copy.deepcopy(cl.frame_cluster_result)
+        cluster_show_queue.put(frame_cluster_result)
+        cl.put_points_show(point_cloud_show_queue)
+
         if show_flag==1:
-            frame_cluster_result = copy.deepcopy(cl.frame_cluster_result)
-            cluster_show_queue.put(frame_cluster_result)
             continue
 
         clusters_center = cl.get_cluster_center_point_list()

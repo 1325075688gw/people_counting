@@ -22,6 +22,7 @@ from Track.visual_all import run_visual
 from Origin_Point_Cloud import analyze_radar_data
 from Origin_Point_Cloud import common
 from Cluster.cluster_show import show_cluster
+from Origin_Point_Cloud.visual_four import visual4plots
 
 queue_for_calculate_polar = Queue()
 queue_for_calculate_cart_transfer = Queue()
@@ -511,8 +512,10 @@ class UartParseSDK():
         if show_flag == 1:
             multiprocessing.Process(target=show_cluster,args=(1500,1000,common.point_cloud_show_queue,common.cluster_show_queue,)).start()
         # 郭泽中可视化
-        else:
+        elif show_flag==2:
             multiprocessing.Process(target=run_visual,args=(common.xmin,common.xmax,common.ymax,common.detection_range,common.loc_pos,)).start()
+        else:
+            multiprocessing.Process(target=visual4plots,args=(common.loc_pos,common.point_cloud_show_queue,common.cluster_show_queue,))
 
 def spy_queue(queue1,queue2,queue3):
     while True:
