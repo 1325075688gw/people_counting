@@ -36,7 +36,7 @@ class ClusterWindow():
             '#F35595', '#2B6D76', '#228B22']
         self.frame_num_text = pg.TextItem()
         self.cluster_plot.addItem(self.frame_num_text)
-        self.frame_num_text.setPos(-0.2, ymax)
+        self.frame_num_text.setPos((xmin+xmax)/2, ymax)
         self.cluster_plot.addItem(self.cluster_scatter)
         self.snr_texts_item = []
 
@@ -46,8 +46,8 @@ class ClusterWindow():
         self.origin_plot.setRange(xRange=[xmin, xmax], yRange=[ymin, ymax], padding=0)
         self.origin_plot.addItem(self.frame_num_text)
 
-        self.paintBorder()
-        # self.paintLine()
+        # self.paintBorder()
+        self.paintLine()
         #绘制xoz yoz
         # self.view.nextRow()
         # self.plot1 = self.view.addPlot() #xoz
@@ -73,8 +73,8 @@ class ClusterWindow():
         # self.cluster_plot.plot(x,ymax-y)
 
     def paintLine(self):
-        self.origin_plot.plot([xmin,xmax],[ymin,ymax])
-        self.cluster_plot.plot([xmin,xmax],[ymin,ymax])
+        self.origin_plot.plot([xmin,xmax],[ymax,ymin])
+        self.cluster_plot.plot([xmin,xmax],[ymax,ymin])
 
     def update_data(self):
 

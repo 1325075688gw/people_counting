@@ -327,6 +327,7 @@ class RadarCluster:
         # 当只有一个人时，直接返回
         if k == 1 or self.radar_index == 2:
             return [unidentified_cluster]
+        print('I splitted!')
         return self.trans_points_to_unidentified_cluster_list(unidentified_cluster.points, tags)
 
     def get_points_score(self, points, tags):

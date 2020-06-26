@@ -4,6 +4,10 @@ import sklearn.cluster as skc
 import json
 from radar_coordinate_transfer import radar2_direction_in_global, compute_direction_vector, compute_relative_position, radar2_position_in_global
 from sklearn import linear_model
+import sys
+sys.path.append("../")
+from Cluster import cluster_common
+
 
 # 聚类求解
 def get_cluster_center(points):
@@ -142,7 +146,7 @@ def read_and_cluster(radar_data):
     points_num_list = []
     mix_points_list = []
     dist_list = []
-    mix_num = 3
+    mix_num = cluster_common.mixed_num
     for k in radar_data:
         frame_data = radar_data[k]
 
@@ -255,7 +259,7 @@ def run(radar1_x,radar1_y,x1,y1,dir_path):
 
 
 def compute_radar1_direction(filenanme):
-    dir_path = "../data/"+filenanme
+    dir_path = "../training_data/"+filenanme
     filename1 = dir_path + "/0/cart_data.json"
     #filename2 = dir_path + "/1/cart_data.json"
     with open(filename1, 'r', encoding='utf-8') as f:
@@ -290,16 +294,16 @@ def training_radar3(dir_path):
 
 if __name__ == "__main__":
     dir_path = "../data/"
-    filename = "data_6_24,单人前后走,未转换,第3次"
+    filename = "data_6_25,6mDefault,单人前后走,未转换,第1次"
     path = dir_path + filename
 
     # 求雷达1的方向向量
-    # compute_radar1_direction(filename)
+    #compute_radar1_direction(filename)
     # 输入雷达1的位置和方向向量, 计算雷达2的位置，方向，和雷达1,2的训练属性
-    # run(-2.4, 0, 9, 7, path)
+    run(0, 0, -7, 5, path)
 
     # 训练雷达3
     # training_radar3(path)
 
     # 只有一个雷达训练
-    run_one_radar(path)
+    # run_one_radar(filename)

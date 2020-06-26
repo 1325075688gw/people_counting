@@ -16,7 +16,7 @@ loc_pos = Queue()
 point_cloud_show_queue = Queue()
 
 azi_range=math.pi/3
-max_accept_pair_distance=0.4
+max_accept_pair_distance=1
 
 #Cluster
 divide_line = 6  # 2个雷达的分界线位置
@@ -26,41 +26,43 @@ radar_2_y = 12  # 雷达2在雷达1下的y坐标
 #origin point cloud
 stop_flag=False
 
-evm_index=[2]
-ports=[['COM30','COM29'],
-        ['COM54','COM53'],
-       ['COM3','COM4']]
-relative_poses=np.array([[-2.4,0],
-                         [0,3],
-                         [0,0]])
-directions=np.array([
-    [7,4],
-    [0,-1],
-    [0,1]
-])
-xdirections=np.array([
-    [4,-7],
-    [-1,0],
-    [1,0]])
-tilts=[10,12,10]
-heights=[2.2,2.05,2]
-configuratioin_files=['./radar_parameters.cfg','./radar_parameters_door.cfg',
-                      './ultimate_radar_parameters_debugging.cfg']
+evm_index=[1,2]
 
-save_flag=False
 # send_config_flag=True
 send_config_flag=False
 
+ports=[['COM30','COM29'],
+       ['/dev/ttyACM1','/dev/ttyACM0'],
+       ['/dev/ttyACM3','/dev/ttyACM2']]
+relative_poses=np.array([[-2.4,0],
+                         [0,0],
+                         [-7, 5]])
+directions=np.array([
+    [-7,5],
+    [-7,5],
+    [0.5855265397410541, -0.590165373739158]
+])
+xdirections=np.array([
+    [4,-7],
+    [5,7],
+    [-0.590165373739158,-0.5855265397410541]])
+tilts=[10,10,10]
+heights=[2.2,2.1,2.1]
+configuratioin_files=['./ultimate_radar_parameters_debugging.cfg','/ultimate_radar_parameters_debugging.cfg',
+                      '/ultimate_radar_parameters_debugging.cfg']
+
+save_flag=False
+
 #Track
-detection_range=5
-xmin=-4
-xmax=4
+detection_range=6
+xmin=-7
+xmax=0
 ymin=0
 ymax=5
 
 max_accept_distance=0.5
 in_rate=0.6
-in_frames=10
+in_frames=20
 out_frames=10
 delay_frames=10
 longest_pause_frames=200

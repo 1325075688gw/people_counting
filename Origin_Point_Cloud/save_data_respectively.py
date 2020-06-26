@@ -563,9 +563,9 @@ if __name__ == "__main__":
     # for i in range(evm_num):
     #     UartParseSDK(True,'/dev/ttyACM'+str(i*2),'/dev/ttyACM'+str(i*2+1),'./radar_parameters.cfg',radar_height,radar_tilt)
     for evm in common.evm_index:
-        UartParseSDK(True,common.ports[evm][0],common.ports[evm][1],'./radar_parameters.cfg',common.heights[evm],common.tilts[evm])
+        UartParseSDK(True, common.ports[evm][0], common.ports[evm][1], 'radar_parameters.cfg', common.heights[evm], common.tilts[evm])
     # UartParseSDK.init_parameters(run_mode, r"./data/"+file_name, frame_num, visual_module)
     time.sleep(1)
-    UartParseSDK.init_parameters(0,r'./data/data_6_24,单人前后走,未转换,第3次',1000,1)
+    UartParseSDK.init_parameters(0, r'data/data_6_26,我们的配置,单人前后走,未转换,第1次', 1000, 1)
 
     # multiprocessing.Process(target=spy_locpos,args=(common.queue_for_cluster_transfer,common.loc_pos,common.cluster_show_queue,)).start()

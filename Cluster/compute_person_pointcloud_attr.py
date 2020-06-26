@@ -152,7 +152,7 @@ def run_training_data(base_path, path, filename, result_list):
 
 
 if __name__ == "__main__":
-    base_path = '.\\training_data'  #不变
+    base_path = 'training_data'  #不变
     path = ''  #调整这个参数
     filename = ''
     coef = 0 # 斜率

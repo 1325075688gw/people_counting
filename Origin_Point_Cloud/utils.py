@@ -6,25 +6,22 @@ from scipy.optimize import linear_sum_assignment
 from Origin_Point_Cloud import common
 
 def get_coordinate_in_radar_num(radar_num, points):
-    radar_pos=np.array(common.relative_poses[radar_num])
-    direction=np.array(common.directions[radar_num])
-    xdirection=np.array(common.xdirections[radar_num])
+    radar_index=common.evm_index[radar_num]
+    radar_pos=np.array(common.relative_poses[radar_index])
+    direction=np.array(common.directions[radar_index])
+    xdirection=np.array(common.xdirections[radar_index])
     nppoints=np.array(points)
 
     relative_loc=nppoints[:,:2]-radar_pos
 
-    nppoints[:,:2]=relative_loc.dot([xdirection/np.linalg.norm(xdirection),direction/np.linalg.norm(direction)])
+    nppoints[:,0]=relative_loc.dot(xdirection/np.linalg.norm(xdirection))
+    nppoints[:,1]=relative_loc.dot(direction/np.linalg.norm(direction))
+
+    for i in range(len(nppoints)):
+        if nppoints[i][1]<0:
+            print(nppoints[i])
 
     return nppoints
-
-def get_radar_num(x,y):
-    '''
-    :function:根据雷达摆放位置高度定制化
-    '''
-    if y<common.ymax/2:
-        return 0
-    else:
-        return 1
 
 # def get_radar_num(x,y):
 #     '''
@@ -43,6 +40,22 @@ def get_radar_num(x,y):
 #     else:
 #         return 3
 
+# def mix_radar_clusters(cluster_centers,people_height_list):
+#     '''
+#     将公共区域的不同雷达的点进行配对
+#     :param cluster_centers: 字典，键为雷达，值为对应雷达聚类结果(list)
+#     :param people_height_list: 字典，键为雷达，值为对应聚类结果身高(list)
+#     :return:一个点集
+#     '''
+#     centers=[]
+#     heights=[]
+#
+#     for radar in cluster_centers:
+#         centers.extend(cluster_centers[radar])
+#         heights.extend(people_height_list[radar])
+#
+#     return centers,heights
+
 def mix_radar_clusters(cluster_centers,people_height_list):
     '''
     将公共区域的不同雷达的点进行配对
@@ -53,10 +66,29 @@ def mix_radar_clusters(cluster_centers,people_height_list):
     centers=[]
     heights=[]
 
-    for radar in cluster_centers:
-        centers.extend(cluster_centers[radar])
-        heights.extend(people_height_list[radar])
-
+    common_area_dict=dict()
+    for i in cluster_centers:
+        for center,height in zip(cluster_centers[i],people_height_list[i]):
+            if np.linalg.norm(center-common.relative_poses[int(i)])>common.detection_range:
+                continue
+            radar_indexes=get_radar_nums_common(center[0],center[1])
+            key=''
+            for radar_index in radar_indexes:
+                key+=str(radar_index)
+            if key in common_area_dict:
+                if i in common_area_dict[key]:
+                    common_area_dict[key][i].append(np.array([center[0],center[1],height]))
+                else:
+                    common_area_dict[key][i]=[np.array([center[0],center[1],height])]
+            else:
+                common_area_dict[key]=dict()
+                common_area_dict[key][i]=[np.array([center[0],center[1],height])]
+    for key in common_area_dict:
+        points=np.array(assign_common_area_points(common_area_dict[key]))
+        if len(points)==0:
+            continue
+        centers.extend(points[:,:2])
+        heights.extend(points[:,2])
     return centers,heights
 
 def assign_common_area_points(common_area_radar_dict):

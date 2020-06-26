@@ -30,7 +30,7 @@ class ApplicationWindow(QWidget):
 
     def initUI(self):
 
-        self.setGeometry(200,50,max(1500,950*(self.xmax-self.xmin)/self.ymax),950)
+        self.setGeometry(50,50,2*950*(self.xmax-self.xmin)/self.ymax,950)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
         self.plt=pg.PlotWidget()
@@ -42,8 +42,8 @@ class ApplicationWindow(QWidget):
         self.plt.setBackground('w')
         self.origin_plt.setBackground('w')
 
-        self.paintBorder(self.plt)
-        self.paintBorder(self.origin_plt)
+        # self.paintBorder(self.plt)
+        # self.paintBorder(self.origin_plt)
 
         self.origin_clusters=pg.ScatterPlotItem(size=40)
         self.locations = pg.ScatterPlotItem(size=30)
@@ -102,6 +102,7 @@ class ApplicationWindow(QWidget):
 
             locs.append({'pos':locations[person],'brush':self.colors[self.people[person]]})
             text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
+            # text=pg.TextItem(html=('<h1>'+str(self.posture_status[postures[person]])+'</h1>'),color='#000000')
             # text=pg.TextItem(html=('<h1>'+str(heights[person])+'</h1>'),color='#000000')
             # text = pg.TextItem(str(locations[person]), color='#000000')
             text.setPos(locations[person][0],locations[person][1])

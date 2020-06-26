@@ -420,8 +420,9 @@ class UartParseSDK():
             x=self.relative_pos[0]+self.C[0][0]*x0+self.C[0][1]*y0
             y=self.relative_pos[1]+self.C[1][0]*x0+self.C[1][1]*y0
 
-            if np.linalg.norm([x,y])>common.detection_range:
-                continue
+            # point_location=np.array([x,y])
+            # if np.linalg.norm(point_location-self.relative_pos)>common.detection_range:
+            #     continue
 
             self.cart_transfer[0].append(x)
             self.cart_transfer[1].append(y)
@@ -528,7 +529,7 @@ def run_system():
         configuration_file=common.configuratioin_files[i]
         UartParseSDK(True,port[0],port[1],configuration_file,height,tilt,relative_pos,direction)
 
-    UartParseSDK.init_parameters(-1,r'./data/data_6_24，单人，单块板子，第2次',800,1)
+    UartParseSDK.init_parameters(-1, r'data/data_6_25，我们的配置,7人，两块板子，第1次', 800, 2)
 
 if __name__ == "__main__":
     # UartParseSDK()函数参数说明：
