@@ -88,6 +88,7 @@ class ClusterWindow():
         if not self.cluster_show_queue.empty():
             cluster_result = self.cluster_show_queue.get()
             person_list = cluster_result['person_list']
+
             points_spots = []
             people_spots = []
             for i in range(len(person_list)):

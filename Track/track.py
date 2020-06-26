@@ -85,7 +85,7 @@ class Track():
         if is_pre or is_at_edge_out(location):
             self.not_detected_times+=1
         else:
-            self.not_detected_times+=0.2
+            self.not_detected_times+=0.5
 
     def update(self,point,height):
         location=self.get_last_location()

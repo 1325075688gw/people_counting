@@ -65,21 +65,22 @@ def mix_radar_clusters(cluster_centers,people_height_list):
 
     common_area_dict=dict()
     for i in cluster_centers:
+        radar=common.evm_index[int(i)]
         for center,height in zip(cluster_centers[i],people_height_list[i]):
-            if np.linalg.norm(center-common.relative_poses[int(i)])>common.detection_range:
+            if np.linalg.norm(center-common.relative_poses[radar])>common.detection_range:
                 continue
             radar_indexes=get_radar_nums_common(center[0],center[1])
             key=''
             for radar_index in radar_indexes:
                 key+=str(radar_index)
             if key in common_area_dict:
-                if i in common_area_dict[key]:
-                    common_area_dict[key][i].append(np.array([center[0],center[1],height]))
+                if radar in common_area_dict[key]:
+                    common_area_dict[key][radar].append(np.array([center[0],center[1],height]))
                 else:
-                    common_area_dict[key][i]=[np.array([center[0],center[1],height])]
+                    common_area_dict[key][radar]=[np.array([center[0],center[1],height])]
             else:
                 common_area_dict[key]=dict()
-                common_area_dict[key][i]=[np.array([center[0],center[1],height])]
+                common_area_dict[key][radar]=[np.array([center[0],center[1],height])]
     for key in common_area_dict:
         points=np.array(assign_common_area_points(common_area_dict[key]))
         if len(points)==0:

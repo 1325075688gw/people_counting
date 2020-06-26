@@ -566,6 +566,6 @@ if __name__ == "__main__":
         UartParseSDK(True,common.ports[evm][0],common.ports[evm][1],'./radar_parameters.cfg',common.heights[evm],common.tilts[evm])
     # UartParseSDK.init_parameters(run_mode, r"./data/"+file_name, frame_num, visual_module)
     time.sleep(1)
-    UartParseSDK.init_parameters(0,r'./data/data_6_26,我们的配置,单人前后走,未转换,第1次',1000,1)
+    UartParseSDK.init_parameters(0,r'./data/data_6_26,ODS6m,单人前后走,未转换,第4次',1000,1)
 
     # multiprocessing.Process(target=spy_locpos,args=(common.queue_for_cluster_transfer,common.loc_pos,common.cluster_show_queue,)).start()

@@ -294,7 +294,7 @@ def training_radar3(dir_path):
 
 if __name__ == "__main__":
     dir_path = "../data/"
-    filename = "data_6_25,6mDefault,单人前后走,未转换,第1次"
+    filename = "data_6_26,ODS6m,单人前后走,未转换,第3次"
     path = dir_path + filename
 
     # 求雷达1的方向向量

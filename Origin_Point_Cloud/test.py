@@ -9,7 +9,7 @@ import analyze_radar_data
 from Track.visual_all import run_visual
 
 def read_data():
-    pathdir='data/data_6_25，ODS6m,7人，两块板子，第1次/'
+    pathdir='data/data_6_26，ODS6m,7人，两块板子，第1次/'
     for i in range(len(os.listdir(pathdir))):
         file=open(pathdir+'cart_data'+str(i+1)+'.json')
         data=json.load(file)
