@@ -393,7 +393,7 @@ if __name__ == "__main__":
     # 串口, 雷达高度, 雷达倾角
     i=1
     ports=common.ports[i]
-    uartParseSDK = UartParseSDK(ports[0], ports[1], "radar_parameters.cfg", 1.93, 8)
+    uartParseSDK = UartParseSDK(ports[0], ports[1], "./radar_parameters.cfg", 1.93, 8)
     if common.send_config_flag:
         uartParseSDK.open_port()
         uartParseSDK.send_config()

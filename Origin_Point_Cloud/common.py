@@ -48,8 +48,8 @@ xdirections=np.array([
     [-0.590165373739158,-0.5855265397410541]])
 tilts=[10,10,10]
 heights=[2.2,2.1,2.1]
-configuratioin_files=['./ultimate_radar_parameters_debugging.cfg','/ultimate_radar_parameters_debugging.cfg',
-                      '/ultimate_radar_parameters_debugging.cfg']
+configuratioin_files=['/ODS_6m_default.cfg','/ODS_6m_default.cfg',
+                      '/ODS_6m_default.cfg']
 
 save_flag=False
 

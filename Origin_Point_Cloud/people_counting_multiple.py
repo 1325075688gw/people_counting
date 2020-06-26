@@ -529,7 +529,7 @@ def run_system():
         configuration_file=common.configuratioin_files[i]
         UartParseSDK(True,port[0],port[1],configuration_file,height,tilt,relative_pos,direction)
 
-    UartParseSDK.init_parameters(-1, r'data/data_6_25，我们的配置,7人，两块板子，第1次', 800, 2)
+    UartParseSDK.init_parameters(-1,r'./data/data_6_25，我们的配置,7人，两块板子，第1次',800,1)
 
 if __name__ == "__main__":
     # UartParseSDK()函数参数说明：

@@ -7,6 +7,7 @@ from Origin_Point_Cloud import common
 
 def get_coordinate_in_radar_num(radar_num, points):
     radar_index=common.evm_index[radar_num]
+
     radar_pos=np.array(common.relative_poses[radar_index])
     direction=np.array(common.directions[radar_index])
     xdirection=np.array(common.xdirections[radar_index])
@@ -16,10 +17,6 @@ def get_coordinate_in_radar_num(radar_num, points):
 
     nppoints[:,0]=relative_loc.dot(xdirection/np.linalg.norm(xdirection))
     nppoints[:,1]=relative_loc.dot(direction/np.linalg.norm(direction))
-
-    for i in range(len(nppoints)):
-        if nppoints[i][1]<0:
-            print(nppoints[i])
 
     return nppoints
 

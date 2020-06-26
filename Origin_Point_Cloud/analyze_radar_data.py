@@ -5,6 +5,7 @@ import numpy as np
 import copy
 import time
 
+from Cluster import cluster_common
 from Origin_Point_Cloud import common
 
 from Track.tracker import Tracker
@@ -28,7 +29,8 @@ def cluster_points(show_flag,queue_for_cluster_transfer,cluster_show_queue,loc_p
         print('跟踪器初始化出错')
 
     try:
-        cl = Cluster(eps=0.25, minpts=5, type='2D', min_cluster_count=25, cluster_snr_limit=120,radar_num=len(common.evm_index))
+        cl = Cluster(eps=0.25, minpts=5, type='2D', min_cluster_count=cluster_common.min_cluster_count,
+                     cluster_snr_limit=cluster_common.cluster_snr_limit)
     except:
         print('聚类初始化出错')
 
