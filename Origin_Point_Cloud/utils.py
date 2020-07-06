@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import copy
+import time
 from scipy.optimize import linear_sum_assignment
 
 from Origin_Point_Cloud import common
@@ -237,3 +238,8 @@ def get_radar_nums_common(x,y):
                 radar_index.append(i)
 
     return radar_index
+
+def spy_queue(queue1,queue2,queue3):
+    while True:
+        print('直角坐标队列:',queue1.qsize(),'位置姿态队列:',queue2.qsize(),'聚类结果队列:',queue3.qsize())
+        time.sleep(1)

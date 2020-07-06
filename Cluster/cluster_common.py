@@ -11,10 +11,10 @@ divide_num = [2]
 
 # 训练结果
 radar_training_result = [
-    {'person_length_coef': 0.111048, 'person_length_intercept': 0.351560, 'person_width_max': 0.432569,
-     'person_width_min': 0.282569, 'person_points': 128},
-    {'person_length_coef': 0.078930, 'person_length_intercept': 0.422207, 'person_width_max': 0.419551,
-     'person_width_min': 0.269551, 'person_points': 102},
+    {'person_length_coef': 0.105666, 'person_length_intercept': 0.309379, 'person_width_max': 0.369355,
+     'person_width_min': 0.219355, 'person_points': 82},
+    {'person_length_coef': 0.075474, 'person_length_intercept': 0.485506, 'person_width_max': 0.424758,
+     'person_width_min': 0.274758, 'person_points': 118},
     {'person_length_coef': 0.146146, 'person_length_intercept': 0.520052, 'person_width_max': 1.2,
      'person_width_min': 0.662638, 'person_points': 287}
 ]

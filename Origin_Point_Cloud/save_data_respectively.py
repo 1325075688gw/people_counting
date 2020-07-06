@@ -20,7 +20,7 @@ from copy import deepcopy
 sys.path.append(r"../Cluster")
 sys.path.append(r"../Track")
 
-from visual import run
+from visual import run_visual
 import analyze_radar_data
 import common
 from cluster_show import show_cluster
@@ -566,6 +566,6 @@ if __name__ == "__main__":
         UartParseSDK(True,common.ports[evm][0],common.ports[evm][1],'./radar_parameters.cfg',common.heights[evm],common.tilts[evm])
     # UartParseSDK.init_parameters(run_mode, r"./data/"+file_name, frame_num, visual_module)
     time.sleep(1)
-    UartParseSDK.init_parameters(0,r'./data/data_6_26,ODS6m,单人前后走,未转换,第4次',1000,1)
+    UartParseSDK.init_parameters(0,r'./data/data_6_27,ODS6m,单人前后走,未转换,第2次',1000,1)
 
     # multiprocessing.Process(target=spy_locpos,args=(common.queue_for_cluster_transfer,common.loc_pos,common.cluster_show_queue,)).start()

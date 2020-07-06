@@ -294,13 +294,13 @@ def training_radar3(dir_path):
 
 if __name__ == "__main__":
     dir_path = "../data/"
-    filename = "data_6_26,ODS6m,单人前后走,未转换,第3次"
+    filename = "data_6_27,ODS6m,单人前后走,未转换,第2次"
     path = dir_path + filename
 
     # 求雷达1的方向向量
     #compute_radar1_direction(filename)
     # 输入雷达1的位置和方向向量, 计算雷达2的位置，方向，和雷达1,2的训练属性
-    run(0, 0, -7, 5, path)
+    run(0, 0, -4.5, 5, path)
 
     # 训练雷达3
     # training_radar3(path)

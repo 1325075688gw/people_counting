@@ -18,11 +18,13 @@ from collections import OrderedDict
 from queue import Queue
 from copy import deepcopy
 
-from Track.visual_all import run_visual
+# from Track.visual_all import run_visual
+from Track.visual import run_visual
 from Origin_Point_Cloud import analyze_radar_data
 from Origin_Point_Cloud import common
 from Cluster.cluster_show import show_cluster
 from Origin_Point_Cloud.visual_four import visual4plots
+from Origin_Point_Cloud.utils import spy_queue
 
 queue_for_calculate_polar = Queue()
 queue_for_calculate_cart_transfer = Queue()
@@ -515,12 +517,7 @@ class UartParseSDK():
         elif show_flag==2:
             multiprocessing.Process(target=run_visual,args=(common.xmin,common.xmax,common.ymax,common.detection_range,common.loc_pos,)).start()
         else:
-            multiprocessing.Process(target=visual4plots,args=(common.loc_pos,common.point_cloud_show_queue,common.cluster_show_queue,))
-
-def spy_queue(queue1,queue2,queue3):
-    while True:
-        print('直角坐标队列:',queue1.qsize(),'位置姿态队列:',queue2.qsize(),'聚类结果队列:',queue3.qsize())
-        time.sleep(1)
+            multiprocessing.Process(target=visual4plots,args=(common.loc_pos,common.point_cloud_show_queue,common.cluster_show_queue,)).start()
 
 def run_system():
     for i in common.evm_index:
@@ -532,7 +529,7 @@ def run_system():
         configuration_file=common.configuratioin_files[i]
         UartParseSDK(True,port[0],port[1],configuration_file,height,tilt,relative_pos,direction)
 
-    UartParseSDK.init_parameters(-1,r'./data/data_6_26，ODS6m,7人，两块板子，第1次',800,2)
+    UartParseSDK.init_parameters(-1,r'./data/data_6_27，ODS6m,8人，两块板子，第2次',800,3)
 
 if __name__ == "__main__":
     # UartParseSDK()函数参数说明：

@@ -30,43 +30,26 @@ class ApplicationWindow(QWidget):
 
     def initUI(self):
 
-        self.setGeometry(200,50,max(500,950*(self.xmax-self.xmin)/self.ymax),950)
+        self.setGeometry(50,50,2*950*(self.xmax-self.xmin)/self.ymax,950)
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
         self.plt=pg.PlotWidget()
         self.plt.setRange(xRange=[self.xmin,self.xmax],yRange=[0,self.ymax],padding=0)
-        self.layout.addWidget(self.plt)
+        self.layout.addWidget(self.plt,0,0)
         self.plt.setBackground('w')
 
-        self.paintBorder()
-
         self.locations = pg.ScatterPlotItem(size=30)
-        self.assigned=pg.ScatterPlotItem(size=30)
         self.plt.addItem(self.locations)
-        self.plt.addItem(self.assigned)
         self.texts=[]
-
-    def paintBorder(self):
-        angle = np.arange(math.pi / 6, math.pi * 5 / 6, math.pi / 60)
-        x = np.cos(angle) * self.detection_range
-        y = np.sin(angle) * self.detection_range
-        x = np.insert(x, 0, 0)
-        y = np.insert(y, 0, 0)
-        x = np.insert(x, len(x), 0)
-        y = np.insert(y, len(y), 0)
-        self.plt.plot(x,y)
-        self.plt.plot(x,self.ymax-y)
 
     #每一帧的显示
     def _update_canvas(self):
-
-        if self.loc_pos.empty():    #这两行是否可以删除掉
+        if self.loc_pos.empty():
             return
 
-        # locations,postures,cluster_num,assignment,frame_num=self.loc_pos.get()
-        locations,heights,cluster_num,assignment,frame_num=self.loc_pos.get()
+        locations,postures,cluster_num,frame_num,origin_clusters=self.loc_pos.get()
 
-        self.setWindowTitle('第'+str(frame_num)+'帧，当前帧有'+str(len(locations))+'个人,当前帧有'+str(cluster_num)+'类')
+        self.setWindowTitle('当前有'+str(len(locations))+'个人')
 
         #删除已消失掉的人
         to_be_deleted=[]
@@ -75,26 +58,28 @@ class ApplicationWindow(QWidget):
                 to_be_deleted.append(person)
         for person in to_be_deleted:
             for i in range(len(self.used_color_indexes)):
-                if self.used_color_indexes[i] == self.people[person]:
+                if self.used_color_indexes[i]==self.people[person]:
                     del self.used_color_indexes[i]
                     break
             del self.people[person]
-        #将上一帧中的姿态文字消除
+
         for each in self.texts:
             self.plt.removeItem(each)
         self.texts=[]
-        #更新这一帧的数据
+
         locs=[]
         for person in locations:
 
             if person not in self.people:
-                self.people[person]=self.get_color_index()
+                index=self.get_color_index()
+                self.people[person]=index
 
-            locs.append({'pos':locations[person],'brush':self.people[person]})
-            # text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
-            text=pg.TextItem(str(heights[person]),color='#000000')
+            locs.append({'pos':locations[person],'brush':self.colors[self.people[person]]})
+            text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
+            # text=pg.TextItem(html=('<h1>'+str(self.posture_status[postures[person]])+'</h1>'),color='#000000')
+            # text=pg.TextItem(html=('<h1>'+str(heights[person])+'</h1>'),color='#000000')
             # text = pg.TextItem(str(locations[person]), color='#000000')
-            text.setPos(locations[person][0]-0.25,locations[person][1]+0.18)
+            text.setPos(locations[person][0],locations[person][1])
 
             self.texts.append(text)
             self.plt.addItem(text)
@@ -114,8 +99,8 @@ class ApplicationWindow(QWidget):
                 return i
 
 
-def run(xmin,xmax,ymax,detection_range,loc_pos):
+def run_visual(xmin,xmax,ymax,detectioin_range,loc_pos):
     qapp = QtWidgets.QApplication(sys.argv)
-    app = ApplicationWindow(xmin, xmax, ymax,detection_range,loc_pos)
+    app = ApplicationWindow(xmin, xmax, ymax,detectioin_range,loc_pos)
     app.show()
     qapp.exec_()

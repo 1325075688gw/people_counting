@@ -81,11 +81,9 @@ class FourPlots(QWidget):
         x = np.insert(x, len(x), 0)
         y = np.insert(y, len(y), 0)
         plt.plot(x, y)
-        # plt.plot(x,self.ymax-y)
 
     def update_track(self):
         locations, postures, cluster_num, frame_num, origin_clusters = self.loc_pos.get()
-        # locations,heights,cluster_num,assignment,frame_num,origin_clusters=self.loc_pos.get()
 
         self.setWindowTitle('第' + str(frame_num) + '帧，当前帧有' + str(len(locations)) + '个人,当前帧有' + str(cluster_num) + '类')
 
@@ -114,8 +112,6 @@ class FourPlots(QWidget):
 
             locs.append({'pos': locations[person], 'brush': self.colors[self.people[person]]})
             text = pg.TextItem(self.posture_status[postures[person]], color='#000000')
-            # text=pg.TextItem(html=('<h1>'+str(self.posture_status[postures[person]])+'</h1>'),color='#000000')
-            # text=pg.TextItem(html=('<h1>'+str(heights[person])+'</h1>'),color='#000000')
             text.setPos(locations[person][0], locations[person][1])
 
             self.texts.append(text)
@@ -150,7 +146,7 @@ class FourPlots(QWidget):
             self.origin_scatter.setData(origin_spots)
 
     #每一帧的显示
-    def _update_canvas(self):
+    def update_all(self):
         if self.loc_pos.empty():
             return
         #跟踪器延迟
@@ -163,7 +159,7 @@ class FourPlots(QWidget):
     # 启动定时器 时间间隔秒
     def timer_start(self):
         self.timer = pg.Qt.QtCore.QTimer(self)
-        self.timer.timeout.connect(self._update_canvas)
+        self.timer.timeout.connect(self.update_all)
         self.timer.start(10)
 
     def get_color_index(self):
