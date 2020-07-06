@@ -150,7 +150,7 @@ class FourPlots(QWidget):
         if self.loc_pos.empty():
             return
         #跟踪器延迟
-        if self.point_cloud_show_queue.qsize()<=common.delay_frames or self.cluster_show_queue.qsize()<=common.delay_frames:
+        if self.point_cloud_show_queue.qsize()==0 or self.cluster_show_queue.qsize()==0:
             return
 
         self.update_track()

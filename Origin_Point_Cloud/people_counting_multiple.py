@@ -412,7 +412,7 @@ class UartParseSDK():
             z = self.radar_z - self.polar[0, i] * math.sin(
                 self.theta - self.polar[2, i])
 
-            if z>2:
+            if z>common.zmax:
                 continue
 
             x0=self.polar[0, i] * math.cos(
@@ -422,10 +422,6 @@ class UartParseSDK():
 
             x=self.relative_pos[0]+self.C[0][0]*x0+self.C[0][1]*y0
             y=self.relative_pos[1]+self.C[1][0]*x0+self.C[1][1]*y0
-
-            # point_location=np.array([x,y])
-            # if np.linalg.norm(point_location-self.relative_pos)>common.detection_range:
-            #     continue
 
             self.cart_transfer[0].append(x)
             self.cart_transfer[1].append(y)

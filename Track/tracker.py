@@ -59,6 +59,8 @@ class Tracker():
 
         # 保存当前帧过滤后的聚类点
         self.cluster_nums.append(len(self.clusters))
+        if len(self.cluster_nums)>common.MAX_SAVE_FRAMES:
+            del self.cluster_nums[0]
 
     #根据给定位置与身高初始化预轨迹
     def init_pre_track(self,location,height):
@@ -301,24 +303,13 @@ class Tracker():
 
         return heights
 
-    #获得每个人的速度
-    def get_each_person_velocity(self):
-        velocity=dict()
-
-        for track_id in self.tracks:
-            track=self.tracks[track_id]
-            velocity[track_id]=np.linalg.norm(track.u[-1])
-
-        return velocity
-
     #获得每个人到雷达板的距离
     def get_each_person_distance(self):
         distances=dict()
 
         for track_id in self.tracks:
             track=self.tracks[track_id]
-            if len(track.points)>=common.delay_frames+1:
-                distances[track_id]=np.linalg.norm(track.points[-1-common.delay_frames])
+            distances[track_id]=np.linalg.norm(track.location)
 
         return distances
 
@@ -329,8 +320,7 @@ class Tracker():
         for track_id in self.tracks:
             track=self.tracks[track_id]
             location=track.get_location()
-            if location is not None:
-                locations[track_id]=location
+            locations[track_id]=location
 
         return locations
 
@@ -341,8 +331,7 @@ class Tracker():
         for track_id in self.tracks:
             track=self.tracks[track_id]
             posture=track.get_posture()
-            if posture is not None:
-                postures[track_id]=posture
+            postures[track_id]=posture
 
         return postures
 
@@ -352,24 +341,16 @@ class Tracker():
 
         for track_id in self.tracks:
             track=self.tracks[track_id]
-            if len(track.height.origin_height)>common.delay_frames:
-                raw_height[track_id]=round(track.height.origin_height[-1-common.delay_frames],2)
+            raw_height[track_id]=round(track.height.heights[-1],2)
 
         return raw_height
 
     #获得倒数第M+1帧的聚类个数
     def get_cluster_num(self):
-        if len(self.cluster_nums)<common.delay_frames+1:
-            return 0
-        else:
-            return self.cluster_nums[-common.delay_frames-1]
+        return self.cluster_nums[-1]
 
     def get_frame(self):
-        if self.frame<common.delay_frames:
-            return 0
-        return self.frame-common.delay_frames+1
+        return self.frame
 
     def get_origin_clusters(self):
-        if self.frame<common.delay_frames+1:
-            return []
-        return self.origin_clusters[-common.delay_frames-1]
+        return self.origin_clusters[-1]

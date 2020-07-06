@@ -21,23 +21,20 @@ class Height():
         return self.heights[-1]/self.real_height
 
     def get_last_height(self):
-        return self.heights[-1]
+        return self.height
 
     def get_height(self):
-        if len(self.heights)<common.delay_frames+1:
-            return None
-
-        return self.heights[-common.delay_frames-1]
+        return self.height
 
     def get_height_rate(self):
-        return self.heights[-int(common.delay_frames/2)-1]/self.real_height
+        return self.height/self.real_height
 
     def predict(self):
         self.predict_height=self.height
         self.predict_NoiseCov=self.noiseCov+self.processNoiseCov
 
     def not_detected_update(self):
-        self.heights.append(self.heights[-1])
+        self.heights.append(self.height)
 
     def update(self,height):
         K=self.predict_NoiseCov/(self.predict_NoiseCov+self.processNoiseCov)
@@ -47,7 +44,7 @@ class Height():
         self.heights.append(self.height)
         self.index += 1
 
-        if len(self.heights) == common.delay_frames:
+        if len(self.heights) == common.frames_per_sec*common.arg_smooth:
             self.real_height = np.mean(self.heights)
 
         if self.index % self.FRAME_NUMBER_FOR_HEIGHT_CAL == 0 and self.index <= self.FRAME_NUMBER_FOR_HEIGHT_CAL * 5:

@@ -61,7 +61,6 @@ def cluster_points(show_flag,queue_for_cluster_transfer,cluster_show_queue,loc_p
 
         try:
             tracker.nextFrame(clusters_center, people_height_list)
-
             locations = tracker.get_each_person_location()
             postures = tracker.get_each_person_posture()
             heights=tracker.get_each_person_height()

@@ -29,6 +29,8 @@ radar_2_y = 12  # 雷达2在雷达1下的y坐标
 #origin point cloud
 stop_flag=False
 
+zmax=2
+
 evm_index=[1,2]
 
 # send_config_flag=True
@@ -58,9 +60,9 @@ max_accept_distance=0.5
 in_rate=0.6
 in_frames=20
 out_frames=20
-delay_frames=10
 longest_pause_frames=200
-MAX_SAVE_FRAMES=delay_frames*5
+MAX_SAVE_FRAMES=100
 doFilter=True
-arg_smooth=0.1
+arg_smooth=0.5
 frame_rate=0.5
+frames_per_sec=20

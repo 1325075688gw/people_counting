@@ -22,7 +22,6 @@ def is_at_edge_in(location):
     return False
 
 def is_out_area(location):
-    return False
     if location[0]<common.xmin-0.5 or location[0]>=common.xmax+0.5 or location[1]>common.ymax+0.5 or location[1]<common.ymin-0.5:
         return True
     return False

@@ -20,15 +20,12 @@ class Posture():
             del self.postures[0]
 
     def get_posture(self):
-        if len(self.postures)<common.delay_frames/2+1:
-            return None
-
-        if self.postures[-int(common.delay_frames/2)-1]!=self.last_posture:
-            counts=np.bincount(self.postures[-int(common.delay_frames/2):])
+        if self.postures[-1]!=self.last_posture:
+            length=min(len(self.postures),int(common.arg_smooth*common.frames_per_sec))
+            counts=np.bincount(self.postures[-length:])
             most=np.argmax(counts)
-            if (counts[most]+1)/(common.delay_frames/2)>common.frame_rate and most==self.postures[-int(common.delay_frames/2)-1]:
-                self.last_posture=self.postures[-int(common.delay_frames/2)-1]
-
+            if (counts[most])/length>common.frame_rate and most==self.postures[-1]:
+                self.last_posture=self.postures[-1]
         return self.last_posture
 
     def cal_posture(self,height_rate,velocity,move_range):

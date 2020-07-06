@@ -36,15 +36,11 @@ class Track():
         return self.height.get_last_height()
 
     def get_location(self):
-        if len(self.locations)<common.delay_frames+1:
-            return None
         if not common.doFilter:
-            return self.locations[-common.delay_frames-1]
+            return self.location
 
-        radius=int(common.delay_frames*common.arg_smooth)
-        start=max(-len(self.locations),-common.delay_frames-radius)
-        end=min(-1,-common.delay_frames+radius+1)
-        location=np.array(self.locations[start:end]).mean(axis=0)
+        start=max(-len(self.locations),-int(common.frames_per_sec*common.arg_smooth))
+        location=np.array(self.locations[start:]).mean(axis=0)
         return location
 
     def get_posture(self):
@@ -60,15 +56,13 @@ class Track():
         self.height.predict()
 
     def update_posture(self):
-        if len(self.locations) < common.delay_frames/2 + 2:
-            return
-        start = - int(common.delay_frames/2)
+        start=max(-len(self.locations),-int(common.frames_per_sec*common.arg_smooth))
         points_for_cal = np.array(self.locations[start:])
         x = points_for_cal[:, 0]
         y = points_for_cal[:, 1]
         move_range = np.linalg.norm([np.std(x), np.std(y)])*2
         height_rate = self.height.get_height_rate()
-        velocity = np.linalg.norm(self.speed[-int(common.delay_frames/2)- 1])
+        velocity = np.linalg.norm(self.speed[-1])
 
         self.posture.add_posture(height_rate, velocity, move_range)
 
