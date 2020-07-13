@@ -11,7 +11,7 @@ def get_coordinate_in_radar_num(radar_num, points):
 
     radar_pos=np.array(common.relative_poses[radar_index])
     direction=np.array(common.directions[radar_index])
-    xdirection=np.array(common.xdirections[radar_index])
+    xdirection=np.array([direction[1],-direction[0]])
     nppoints=np.array(points)
 
     relative_loc=nppoints[:,:2]-radar_pos

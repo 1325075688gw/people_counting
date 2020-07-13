@@ -18,7 +18,6 @@ class Cluster:
             radar_frame_data['frame_num'] = frame_data['frame_num']
             radar_frame_data['point_list'] = frame_data['point_list'][str(i)]
             self.cluster_list[i].do_cluster(radar_frame_data)
-
         self.update_frame_cluster_result()
 
     def get_height_list(self):

@@ -31,24 +31,15 @@ stop_flag=False
 
 zmax=2
 
-evm_index=[1,2]
+evm_index=[0,1]
 
-# send_config_flag=True
-send_config_flag=False
-
-ports=[['COM30','COM29'],
-       ['/dev/ttyACM1','/dev/ttyACM0'],
+ports=[['/dev/ttyACM1','/dev/ttyACM0'],
        ['/dev/ttyACM3','/dev/ttyACM2']]
-relative_poses=np.array([[-2.4,0],[0,0],[-6.7, 4.7]])
-# relative_poses=np.array([[0,0],[0,0],[0,0]])
-directions=np.array([[-7,5],[-4.5,5],[0.8064258197273778, -0.55]])
-# directions=np.array([[0,1],[0,1],[0,1]])
-xdirections=np.array([[4,-7],[5,4.5],[-0.55,-0.8064258197273778]])
-# xdirections=np.array([[1,0],[1,0],[1,0]])
-tilts=[10,10,10]
-heights=[2.2,2.1,2.1]
-configuratioin_files=['/ODS_6m_default.cfg','/ODS_6m_default.cfg',
-                      '/ODS_6m_default.cfg']
+relative_poses=np.array([[0,0],[-6.871040045423966, 4.164837648385767]])
+directions=np.array([[-1,1],[0.6583335934350542, -0.7407052540745617]])
+tilts=[32.0,24.0]
+heights=[2.098431623931624,2.0831442307692307]
+configuration_files=['ODS_6m_default.cfg','ODS_6m_default.cfg']
 
 save_flag=False
 

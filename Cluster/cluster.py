@@ -1,7 +1,7 @@
 import numpy as np  # 数据结构
 import sklearn.cluster as skc
 import math
-from sklearn.mixture.gaussian_mixture import GaussianMixture
+from sklearn.mixture import GaussianMixture
 
 # 显示聚类点云
 import sys
@@ -22,7 +22,6 @@ class UnidentifiedCluster:
         self.doppler_v = self.center_point[3]
         self.avg_snr = self.center_point[4]
         self.sum_snr = self.compute_cluster_sum_snr()
-
         # 多帧融合帧数
         self.mix_frame_num = mix_frame_num
 
@@ -137,7 +136,6 @@ class RadarCluster:
         # print("帧号:", self.frame_cluster_result['frame_num'])
         # 加入点云显示队列
 
-
         # 将点云聚类得到初始聚类结果，UnidentifiedCluster
         unidentified_cluster_list = self.initial_cluster(points)
 
@@ -185,12 +183,10 @@ class RadarCluster:
         # 过滤噪声，得到分好类的聚类结果
         cluster_tem_dict = self.cluster_by_tag(points, tags)
         self.cluster_filter_by_noise(cluster_tem_dict)
-
         # 将分好类的聚类结果，转换为UnidentifiedCluster对象，方便之后分析
         unidentified_cluster_list = []
         for i in cluster_tem_dict:
             unidentified_cluster_list.append(UnidentifiedCluster(cluster_tem_dict[i], self.mix_frame_num, self.history_data_size, self.radar_index))
-
         return unidentified_cluster_list
 
     @staticmethod
@@ -327,7 +323,6 @@ class RadarCluster:
         # 当只有一个人时，直接返回
         if k == 1 or self.radar_index == 2:
             return [unidentified_cluster]
-        print('I splitted!')
         return self.trans_points_to_unidentified_cluster_list(unidentified_cluster.points, tags)
 
     def get_points_score(self, points, tags):

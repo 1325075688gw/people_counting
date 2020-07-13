@@ -1,9 +1,7 @@
 import sys
-import matplotlib.pyplot as plt
-import math
-import numpy as np
 import copy
-import time
+
+sys.path.append('../')
 
 from Cluster import cluster_common
 from Origin_Point_Cloud import common
