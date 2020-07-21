@@ -1,7 +1,6 @@
 import sys
-# import common
 sys.path.append(r"../龚伟-点云检测")
-import common #for me
+import common
 
 class PointCloud():
     def __init__(self):

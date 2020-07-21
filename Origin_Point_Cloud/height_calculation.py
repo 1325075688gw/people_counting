@@ -4,20 +4,19 @@
 
 
 import struct
-import math
 import numpy as np
 import os
 import time
 import sys
 import serial
-import json
 
 from threading import Thread
 from collections import OrderedDict
 from queue import Queue
 from copy import deepcopy
 
-import common
+sys.path.append('../')
+from Origin_Point_Cloud import common
 from calculate_elev_delta_radar_height import cal_elev_delta_radar_height
 
 queue_for_calculate_polar = Queue()
@@ -78,7 +77,7 @@ class RawPoint:
 
 
 class UartParseSDK():
-    def __init__(self, data_port, user_port, config_path, radar_z, theta):
+    def __init__(self, data_port, user_port, config_path):
         self.json_data_cart_transfer = OrderedDict()
         self.json_data_polar = OrderedDict()
         self.magic_word = 0x708050603040102
@@ -97,11 +96,6 @@ class UartParseSDK():
         self.tlv_header_length = 8
         self.header_length = 48
         self.missed_frame_num = 0
-        self.theta = math.radians(theta)
-        self.theta_diff = math.radians(90-theta)
-        self.theta_30 = math.radians(0)
-        self.theta_15 = math.radians(0)
-        self.radar_z = radar_z
         self.config_path = config_path
         self.save_2_queue_flag = True
         self.current_size = 0
@@ -116,42 +110,6 @@ class UartParseSDK():
                                        timeout=0.3)
         self.data_port = serial.Serial(data_port, 921600 * 1, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
                                        timeout=0.025)
-
-    def open_port(self):
-        """
-        打开串口
-        :return: None
-        """
-        if self.data_port.isOpen():
-            self.data_port.reset_output_buffer()
-            print("数据串口打开成功！")
-        else:
-            print("数据串口打开失败！")
-
-        if self.user_port.isOpen():
-            self.user_port.reset_input_buffer()
-            print("用户串口打开成功！")
-        else:
-            print("用户串口打开失败！")
-
-    def send_config(self):
-        """
-        向毫米波雷达发送数据
-        :return: None
-        """
-        current_dir = os.path.dirname(__file__)
-        file = open(current_dir + self.config_path, "r+")
-        if file is None:
-            print("配置文件不存在!")
-            return
-        for text in file.readlines():
-            if text == "\n":
-                continue
-            print("send config:" + text)
-            self.user_port.write(text.encode('utf-8'))
-            self.user_port.write('\n'.encode('utf-8'))
-            time.sleep(0.2)
-        file.close()
 
     def receive_data_th(self):
         """
@@ -179,9 +137,7 @@ class UartParseSDK():
         :return:None
         """
         while not common.stop_flag:
-            print("frame_num:{0}".format(self.frame_num))
             if self.frame_num < 100:
-                # print("frame_num:{0}".format(self.frame_num))
                 continue
             point_cloud_num = 0
             point_cloud_list = []
@@ -212,13 +168,11 @@ class UartParseSDK():
             else:
                 if save_flag == 0:
                     if self.current_size == self.end_size:
-                    # if self.frame_num == frame_nums:
-                        print("请稍等，正在计算height和elevtion...")
+                        print("正在计算雷达高度和倾角...")
                         polar_data = deepcopy(self.json_data_polar)
-                        # print(polar_data)
                         self.save_2_queue_flag = False
                         common.stop_flag = True
-                        cal_elev_delta_radar_height(polar_data, 1.8)
+                        cal_elev_delta_radar_height(polar_data, self.person_height)
 
     def put_queue_thread(self, save_flag, save_path, second, end_size):
         """
@@ -279,8 +233,8 @@ class UartParseSDK():
                     # target index
                     self.parse_target_index(data_in, data_length)
                 data_in = data_in[data_length:]
-            except Exception as e:
-                print("解析头出错：{0}".format(e))
+            except:
+                pass
         return data_in
 
     def parse_tlv_header(self, data_in):
@@ -327,24 +281,7 @@ class UartParseSDK():
             except:
                 self.detected_point_num = i
                 break
-        self.polar_to_cart()
-
-    def polar_to_cart(self):
-        self.cart_transfer = np.empty((5, self.detected_point_num))
-        for i in range(0, self.detected_point_num):
-            # x
-            self.cart_transfer[0, i] = self.polar[0, i] * math.cos(
-                self.theta - self.polar[2, i] + self.theta_15) * math.sin(self.polar[1, i] - self.theta_30)
-            # y
-            self.cart_transfer[1, i] = self.polar[0, i] * math.cos(
-                self.theta - self.polar[2, i] + self.theta_15) * math.cos(self.polar[1, i] - self.theta_30)
-            # z
-            self.cart_transfer[2, i] = self.radar_z - self.polar[0, i] * math.sin(
-                self.theta - self.polar[2, i] + self.theta_15)
-        self.cart_transfer[3, :] = self.polar[3, 0:self.detected_point_num]
-        self.cart_transfer[4, :] = self.polar[4, 0:self.detected_point_num]
         queue_for_calculate_polar.put(deepcopy(self.polar))
-        queue_for_calculate_cart_transfer.put(deepcopy(self.cart_transfer))
 
     def parse_target_list(self, data_in, data_length):
         """
@@ -389,13 +326,22 @@ class UartParseSDK():
 
 
 if __name__ == "__main__":
-    # 数据串口, 用户
-    # 串口, 雷达高度, 雷达倾角
-    i=1
-    ports=common.ports[i]
-    uartParseSDK = UartParseSDK(ports[0], ports[1], "./radar_parameters.cfg", 1.93, 8)
-    if common.send_config_flag:
-        uartParseSDK.open_port()
-        uartParseSDK.send_config()
-    uartParseSDK.receive_data_thread().start()
-    uartParseSDK.put_queue_thread(0, r"./data/data_5_16,1.6米单人走，来回走第1次", 0 ,1000).start()
+
+    person_height=float(sys.argv[1])
+    frames=int(sys.argv[2])
+    UartParseSDK.person_height=person_height
+
+    for i in range(len(common.evm_index)):
+        common.stop_flag=False
+        print('请在雷达'+str(i+1)+'前方1.5m-5.5m的范围内行走...')
+
+        evm=common.evm_index[i]
+        port=common.ports[evm]
+        configuration_file=common.configuration_files[evm]
+
+        uartParseSDK = UartParseSDK(port[0], port[1], configuration_file)
+        uartParseSDK.receive_data_thread().start()
+        put_queue_thread=uartParseSDK.put_queue_thread(0, r"./data/data_5_16,1.6米单人走，来回走第1次", 0 ,frames)
+
+        put_queue_thread.start()
+        put_queue_thread.join()

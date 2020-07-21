@@ -1,6 +1,4 @@
 import sys
-# import common
-# sys.path.append(r"../龚伟-点云检测")
 sys.path.append(r"../") #for me
 from Origin_Point_Cloud import common #for me
 

@@ -1,7 +1,5 @@
 from Origin_Point_Cloud import common
 
-import math
-
 # 判断轨迹是否位于边缘
 def is_at_edge_out(location):
     x = location[0]

@@ -1,5 +1,4 @@
 from Cluster.height import Height
-import math
 import sys
 sys.path.append("../")
 from Cluster import cluster_common

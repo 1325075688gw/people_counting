@@ -11,12 +11,10 @@ divide_num = [2]
 
 # 训练结果
 radar_training_result = [
-    {'person_length_coef': 0.105666, 'person_length_intercept': 0.309379, 'person_width_max': 0.369355,
-     'person_width_min': 0.219355, 'person_points': 82},
-    {'person_length_coef': 0.075474, 'person_length_intercept': 0.485506, 'person_width_max': 0.424758,
-     'person_width_min': 0.274758, 'person_points': 118},
-    {'person_length_coef': 0.146146, 'person_length_intercept': 0.520052, 'person_width_max': 1.2,
-     'person_width_min': 0.662638, 'person_points': 287}
+    {'person_length_coef': 0.079674, 'person_length_intercept': 0.378030, 'person_width_max': 0.501224,
+     'person_width_min': 0.351224, 'person_points': 92},
+    {'person_length_coef': 0.061769, 'person_length_intercept': 0.623663, 'person_width_max': 0.576392,
+     'person_width_min': 0.426392, 'person_points': 124}
 ]
 
 # 噪声过滤阈值

@@ -1,6 +1,5 @@
-import numpy as np
-import math,sys
-from PyQt5.QtWidgets import QGridLayout,QWidget,QVBoxLayout,QMainWindow
+import sys
+from PyQt5.QtWidgets import QGridLayout,QWidget
 import pyqtgraph as pg
 from PyQt5 import QtWidgets
 
