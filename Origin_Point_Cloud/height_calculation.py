@@ -17,7 +17,9 @@ from copy import deepcopy
 
 sys.path.append('../')
 from Origin_Point_Cloud import common
-from calculate_elev_delta_radar_height import cal_elev_delta_radar_height
+from Origin_Point_Cloud.calculate_elev_delta_radar_height import cal_elev_delta_radar_height
+
+from Origin_Point_Cloud.utils import read_config,write_config
 
 queue_for_calculate_polar = Queue()
 queue_for_calculate_cart_transfer = Queue()
@@ -131,7 +133,7 @@ class UartParseSDK():
         _receive_data_th = Thread(target=self.receive_data_th)
         return _receive_data_th
 
-    def put_queue_th(self, save_flag, save_path, second):
+    def put_queue_th(self, save_flag,radar_index):
         """
         毫米波雷达采集数据，然后将数据push到队列中，供杨家辉调用
         :return:None
@@ -168,19 +170,25 @@ class UartParseSDK():
             else:
                 if save_flag == 0:
                     if self.current_size == self.end_size:
-                        print("正在计算雷达高度和倾角...")
+                        print("正在计算雷达"+str(radar_index+1)+"高度和倾角...")
                         polar_data = deepcopy(self.json_data_polar)
                         self.save_2_queue_flag = False
                         common.stop_flag = True
-                        cal_elev_delta_radar_height(polar_data, self.person_height)
+                        elev_delta,radar_height=cal_elev_delta_radar_height(polar_data, self.person_height)
+                        print('雷达'+str(radar_index+1)+'高度和倾角计算完成')
+                        config=common.config
+                        config.set('radar_params','radar'+str(radar_index+1)+'_height',str(radar_height))
+                        config.set('radar_params','radar'+str(radar_index+1)+'_tilt',str(elev_delta))
+                        write_config(config)
+                        print('雷达'+str(radar_index+1)+'高度和倾角保存完毕')
 
-    def put_queue_thread(self, save_flag, save_path, second, end_size):
+    def put_queue_thread(self, save_flag, end_size,radar_index):
         """
         定义将毫米波雷达采集到数据放到队列中，供杨家辉调用【线程】
         :return: None
         """
         self.end_size = end_size
-        _put_queue_th = Thread(target=self.put_queue_th, args=(save_flag, save_path, second))
+        _put_queue_th = Thread(target=self.put_queue_th, args=(save_flag,radar_index,))
         return _put_queue_th
 
     def get_frame(self, data_in):
@@ -331,17 +339,16 @@ if __name__ == "__main__":
     frames=int(sys.argv[2])
     UartParseSDK.person_height=person_height
 
-    for i in range(len(common.evm_index)):
+    for i in range(2):
         common.stop_flag=False
-        print('请在雷达'+str(i+1)+'前方1.5m-5.5m的范围内行走...')
+        print('请在雷达'+str(i+1)+'前方1.5m-6m的范围内行走...')
 
-        evm=common.evm_index[i]
-        port=common.ports[evm]
-        configuration_file=common.configuration_files[evm]
+        port=common.ports[i]
+        configuration_file=common.configuration_files[i]
 
         uartParseSDK = UartParseSDK(port[0], port[1], configuration_file)
         uartParseSDK.receive_data_thread().start()
-        put_queue_thread=uartParseSDK.put_queue_thread(0, r"./data/data_5_16,1.6米单人走，来回走第1次", 0 ,frames)
+        put_queue_thread=uartParseSDK.put_queue_thread(0,frames,i)
 
         put_queue_thread.start()
         put_queue_thread.join()

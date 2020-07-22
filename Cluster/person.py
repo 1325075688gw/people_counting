@@ -1,13 +1,16 @@
 from Cluster.height import Height
 import sys
 sys.path.append("../")
-from Cluster import cluster_common
+from Origin_Point_Cloud.utils import read_config
+
+person_features = ['person_length_coef', 'person_length_intercept', 'person_width_max', 'person_width_min',
+                   'person_points']
+config = read_config()
 
 class Person:
     person_length_upper_offset = 0.3
     person_length_lower_offset = -0.1
     # 长度方程
-
     coefficient_length = 0.4
     coefficient_width = 0.5
     coefficient_points = 0.1
@@ -17,7 +20,7 @@ class Person:
 
     # 多雷达下训练结果
     # 3
-    radar_training_result = cluster_common.radar_training_result
+    radar_training_result = [{person_features[j]:float(config.get('person_feature','radar'+str(i+1)+'_'+person_features[j])) for j in range(len(person_features))} for i in range(2)]
 
     def __init__(self, unidentified_cluster):
         self.points = unidentified_cluster.points

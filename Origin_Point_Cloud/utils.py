@@ -3,14 +3,27 @@ import math
 import copy
 import time
 from scipy.optimize import linear_sum_assignment
+import configparser
 
 from Origin_Point_Cloud import common
+
+def read_config():
+    config=configparser.ConfigParser()
+    config.read('params.ini')
+    return config
+
+def write_config(config):
+    config.write(open('params.ini','r+'))
+
+config=read_config()
+relative_poses=np.array([[float(config.get('radar_params','radar'+str(i+1)+'x')),float(config.get('radar_params','radar'+str(i+1)+'y'))] for i in range(2)])
+directions=np.array([[float(config.get('radar_params','radar'+str(i+1)+'dx')),float(config.get('radar_params','radar'+str(i+1)+'dy'))] for i in range(2)])
 
 def get_coordinate_in_radar_num(radar_num, points):
     radar_index=common.evm_index[radar_num]
 
-    radar_pos=np.array(common.relative_poses[radar_index])
-    direction=np.array(common.directions[radar_index])
+    radar_pos=np.array(relative_poses[radar_index])
+    direction=np.array(directions[radar_index])
     xdirection=np.array([direction[1],-direction[0]])
     nppoints=np.array(points)
 
@@ -68,7 +81,7 @@ def mix_radar_clusters(cluster_centers,people_height_list):
     for i in cluster_centers:
         radar=common.evm_index[int(i)]
         for center,height in zip(cluster_centers[i],people_height_list[i]):
-            if np.linalg.norm(center-common.relative_poses[radar])>common.detection_range:
+            if np.linalg.norm(center-relative_poses[radar])>common.detection_range:
                 continue
             radar_indexes=get_radar_nums_common(center[0],center[1])
             key=''
@@ -133,7 +146,9 @@ def assign_common_two_area_points(points1,points2):
         indexi.append(i)
         indexj.append(j)
         if distances[i][j] < common.max_accept_pair_distance:
-            points.append((points1[i]+points2[j])/2)
+            location=(points1[i][:2]+points2[j][:2])/2
+            height=max(points1[i][-1],points2[j][-1])
+            points.append(np.array([location[0],location[1],height]))
         else:
             points.append(points1[i])
             points.append(points2[j])
@@ -229,8 +244,8 @@ def get_radar_nums_common(x,y):
 
     for i in common.evm_index:
         location=np.array([x,y])
-        radar_pos=common.relative_poses[i]
-        direction=common.directions[i]
+        radar_pos=relative_poses[i]
+        direction=directions[i]
 
         relative_pos=location-radar_pos
         if np.linalg.norm(relative_pos)<common.detection_range:

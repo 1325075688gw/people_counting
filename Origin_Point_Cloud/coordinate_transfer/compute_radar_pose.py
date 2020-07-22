@@ -9,6 +9,7 @@ sys.path.append("../")
 
 from coordinate_transfer.radar_coordinate_transfer import radar2_direction_in_global, compute_direction_vector, compute_relative_position, radar2_position_in_global
 from Cluster import cluster_common
+from coordinate_transfer.pos_direct_modify import cal_radar2_params
 
 
 # 聚类求解
@@ -234,8 +235,7 @@ def read_and_cluster(radar_data):
 
 def training_data(radar_data):
     person_attr = read_and_cluster(radar_data)
-    print("{'person_length_coef': %f, 'person_length_intercept': %f, 'person_width_max': %f, 'person_width_min': %f, 'person_points': %d}"%
-          (person_attr[3], person_attr[4], person_attr[1]+0.1, person_attr[1]-0.05, person_attr[2]))
+    return [person_attr[3][0][0],person_attr[4][0], person_attr[1]+0.1, person_attr[1]-0.05, person_attr[2]]
 
 
 def run(radar1_x,radar1_y,x1,y1,dir_path):
@@ -246,19 +246,13 @@ def run(radar1_x,radar1_y,x1,y1,dir_path):
         radar1_data = json.load(f)
     with open(filename2, 'r', encoding='utf-8') as f:
         radar2_data = json.load(f)
-    radar2_direction_in_radar1, radar2_position_in_radar1 = compute_radar_direction_vector(radar1_data, radar2_data)
-    global_direction = radar2_direction_in_global(x1, y1, radar2_direction_in_radar1[0], radar2_direction_in_radar1[1])
-    print("雷达2在世界坐标下的方向向量：")
-    print(global_direction)
-    global_position = radar2_position_in_global(radar1_x,radar1_y,x1,y1,radar2_position_in_radar1)
-    print("雷达2在世界坐标下的位置")
-    print(global_position)
+    global_direction,global_position=cal_radar2_params(radar1_x,radar1_y,x1,y1,dir_path)
+    print('雷达2在世界坐标系下的位置和方向向量计算完毕')
     # 运行训练人的特征
-    print("radar1:")
-    training_data(radar1_data)
-    print("radar2:")
-    training_data(radar2_data)
-
+    radar1_person_feature=training_data(radar1_data)
+    radar2_person_feature=training_data(radar2_data)
+    print('雷达1和雷达2照射的人的点云特征计算完毕')
+    return global_direction,global_position,radar1_person_feature,radar2_person_feature
 
 def compute_radar1_direction(filename):
     filename1 = filename + "/0/cart_data.json"
@@ -274,7 +268,7 @@ def compute_radar1_direction(filename):
         radar1_direction_list.append(compute_direction_vector(d,0,center[0],center[1]))
 
     radar1_direction = np.mean(radar1_direction_list,axis=0)
-    print("雷达1的方向向量:\n", radar1_direction)
+    return radar1_direction
 
 
 def run_one_radar(dir_path):
@@ -298,9 +292,9 @@ if __name__ == "__main__":
     path = dir_path + filename
 
     # 求雷达1的方向向量
-    compute_radar1_direction(path)
+    # compute_radar1_direction(path)
     # 输入雷达1的位置和方向向量, 计算雷达2的位置，方向，和雷达1,2的训练属性
-    # run(0, 0, -4.5, 5, path)
+    print(run(0, 0, -4.5, 5, path))
 
     # 训练雷达3
     # training_radar3(path)

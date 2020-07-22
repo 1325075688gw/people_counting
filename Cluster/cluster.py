@@ -41,6 +41,7 @@ class UnidentifiedCluster:
         self.origin_radar_dist = math.sqrt(self.origin_radar_center_point[0]**2+self.origin_radar_center_point[1]**2)
         self.length, self.width, self.height = self.compute_cluster_length_width_height(self.origin_radar_points, self.origin_radar_center_point)
 
+
     def compute_cluster_sum_snr(self):
         sum_snr = 0
         for point in self.points:
@@ -138,10 +139,8 @@ class RadarCluster:
 
         # 将点云聚类得到初始聚类结果，UnidentifiedCluster
         unidentified_cluster_list = self.initial_cluster(points)
-
         # 对初始聚类结果进行分析，对满足人的要求的聚类转换为人，不满足的删除，对一个聚类包含多个人的进行分割
         person_list = self.trans_cluster_to_person(unidentified_cluster_list)
-
         # 结束这一帧的聚类分析，并保存结果
 
         self.save_result(person_list)

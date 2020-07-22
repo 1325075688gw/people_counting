@@ -41,11 +41,10 @@ def cluster_points(show_flag,queue_for_cluster_transfer,cluster_show_queue,loc_p
             print('聚类出错')
 
         frame_cluster_result = copy.deepcopy(cl.frame_cluster_result)
-        cluster_show_queue.put(frame_cluster_result)
-        cl.put_points_show(point_cloud_show_queue)
 
-        if show_flag==1:
-            continue
+        if show_flag==3:
+            cluster_show_queue.put(frame_cluster_result)
+            cl.put_points_show(point_cloud_show_queue)
 
         clusters_center = cl.get_cluster_center_point_list()
         people_height_list = cl.get_height_list()
@@ -66,6 +65,6 @@ def cluster_points(show_flag,queue_for_cluster_transfer,cluster_show_queue,loc_p
         except:
             print('跟踪出错')
 
-        loc_pos.put([locations, postures, tracker.get_cluster_num(),frame_num,origin_clusters])
+        # loc_pos.put([locations, postures, tracker.get_cluster_num(),frame_num,origin_clusters])
 
-        # loc_pos.put([locations, heights, tracker.get_cluster_num(),assignment,frame_num,origin_clusters])
+        loc_pos.put([locations, heights, tracker.get_cluster_num(),frame_num,origin_clusters])

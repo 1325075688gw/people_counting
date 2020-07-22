@@ -46,7 +46,8 @@ class ApplicationWindow(QWidget):
         if self.loc_pos.empty():
             return
 
-        locations,postures,cluster_num,frame_num,origin_clusters=self.loc_pos.get()
+        # locations,postures,cluster_num,frame_num,origin_clusters=self.loc_pos.get()
+        locations,heights,cluster_num,frame_num,origin_clusters=self.loc_pos.get()
 
         self.setWindowTitle('当前有'+str(len(locations))+'个人')
 
@@ -74,9 +75,9 @@ class ApplicationWindow(QWidget):
                 self.people[person]=index
 
             locs.append({'pos':locations[person],'brush':self.colors[self.people[person]]})
-            text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
+            # text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
             # text=pg.TextItem(html=('<h1>'+str(self.posture_status[postures[person]])+'</h1>'),color='#000000')
-            # text=pg.TextItem(html=('<h1>'+str(heights[person])+'</h1>'),color='#000000')
+            text=pg.TextItem(html=('<h1>'+str(heights[person])+'</h1>'),color='#000000')
             # text = pg.TextItem(str(locations[person]), color='#000000')
             text.setPos(locations[person][0],locations[person][1])
 

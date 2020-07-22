@@ -22,6 +22,8 @@ sys.path.append('../')
 from Track.visual import run_visual
 from Origin_Point_Cloud import analyze_radar_data
 from Origin_Point_Cloud import common
+from Origin_Point_Cloud.utils import read_config,write_config
+from Origin_Point_Cloud.visual_four import visual4plots
 
 queue_for_calculate_polar = Queue()
 queue_for_calculate_cart_transfer = Queue()
@@ -95,7 +97,7 @@ class UartParseSDK():
     json_data_cart_transfer = [OrderedDict(),OrderedDict(),OrderedDict()]
 
     @classmethod
-    def init_parameters(cls, save_flag, save_path, end_size, show_flag):
+    def init_parameters(cls, save_flag, save_path, end_size):
         cls.save_flag = save_flag
         cls.end_size = end_size
         cls.save_path = save_path
@@ -103,7 +105,6 @@ class UartParseSDK():
         cls.mix_all_queue_thread().start()
         if save_flag==0:
             cls.save_data_thread().start()
-        cls.show_frame(show_flag)
 
     def __init__(self, user_flag, data_port, user_port, config_path, radar_z, theta,relative_pos,direction):
         self.evm_num = UartParseSDK.evm_current
@@ -448,7 +449,7 @@ class UartParseSDK():
                 break
 
     @classmethod
-    def show_frame(cls, show_flag):
+    def show_frame(cls, show_flag,xmin,xmax,ymax,detection_range):
         """
         先聚类，然后再可视化
         :return: None
@@ -461,19 +462,30 @@ class UartParseSDK():
             pass
         # 郭泽中可视化
         elif show_flag==2:
-            multiprocessing.Process(target=run_visual,args=(common.xmin,common.xmax,common.ymax,common.detection_range,common.loc_pos,)).start()
+            multiprocessing.Process(target=run_visual,args=(xmin,xmax,ymax,detection_range,common.loc_pos,)).start()
+        else:
+            multiprocessing.Process(target=visual4plots,args=(common.loc_pos,common.point_cloud_show_queue,common.cluster_show_queue,xmin,xmax,ymax,detection_range,)).start()
 
 def run_system():
+
+    config=common.config
+    common.zmax=multiprocessing.Value('d',float(config.get('radar_params','zmax'))).value
+    common.xmin=multiprocessing.Value('d',min([float(config.get('radar_params','radar'+str(i+1)+'x')) for i in range(2)])).value
+    common.xmax=multiprocessing.Value('d',max([float(config.get('radar_params','radar'+str(i+1)+'x')) for i in range(2)])).value
+    common.ymax=multiprocessing.Value('d',max([float(config.get('radar_params','radar'+str(i+1)+'y')) for i in range(2)])).value
+
     for i in common.evm_index:
         port=common.ports[i]
-        relative_pos=common.relative_poses[i]
-        direction=common.directions[i]
-        tilt=common.tilts[i]
-        height=common.heights[i]
+        relative_pos=[float(config.get('radar_params','radar'+str(i+1)+'x')),float(config.get('radar_params','radar'+str(i+1)+'y'))]
+        direction=[float(config.get('radar_params','radar'+str(i+1)+'dx')),float(config.get('radar_params','radar'+str(i+1)+'dy'))]
+        tilt=float(config.get('radar_params','radar'+str(i+1)+'_tilt'))
+        height=float(config.get('radar_params','radar'+str(i+1)+'_height'))
         configuration_file=common.configuration_files[i]
         UartParseSDK(True,port[0],port[1],configuration_file,height,tilt,relative_pos,direction)
 
-    UartParseSDK.init_parameters(-1,r'./data/data_6_27，ODS6m,8人，两块板子，第2次',800,2)
+    UartParseSDK.init_parameters(-1,r'./data/data_6_27，ODS6m,8人，两块板子，第2次',800)
+
+    UartParseSDK.show_frame(3,common.xmin,common.xmax,common.ymax,common.detection_range)
 
 if __name__ == "__main__":
     # UartParseSDK()函数参数说明：

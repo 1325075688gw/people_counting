@@ -109,6 +109,4 @@ def cal_elev_delta_radar_height(polar_data,human_height):
 
     RADAR_HEIGHT=human_height-np.mean(heights)+radar_height
 
-    print('代码中应该填的雷达倾角:',elev_delta,'代码中应该填的雷达高度:',RADAR_HEIGHT)
-
     return elev_delta,RADAR_HEIGHT

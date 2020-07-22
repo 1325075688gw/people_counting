@@ -5,6 +5,7 @@
 from multiprocessing import Queue
 import math
 import numpy as np
+from Origin_Point_Cloud.utils import read_config
 
 #public
 queue_for_cluster_transfer = Queue()
@@ -16,29 +17,18 @@ loc_pos = Queue()
 point_cloud_show_queue = Queue()
 
 detection_range=6
-xmin=-6.7
-xmax=0
 ymin=0
-ymax=4.7
 
-#Cluster
-divide_line = 6  # 2个雷达的分界线位置
-radar_2_x = 0  # 雷达2在雷达1下的x坐标
-radar_2_y = 12  # 雷达2在雷达1下的y坐标
+config=read_config()
 
 #origin point cloud
 stop_flag=False
 
-zmax=2
 
 evm_index=[0,1]
 
 ports=[['/dev/ttyACM1','/dev/ttyACM0'],
        ['/dev/ttyACM3','/dev/ttyACM2']]
-relative_poses=np.array([[0,0],[-6.871040045423966, 4.164837648385767]])
-directions=np.array([[-1,1],[0.6583335934350542, -0.7407052540745617]])
-tilts=[32.0,24.0]
-heights=[2.098431623931624,2.0831442307692307]
 configuration_files=['ODS_6m_default.cfg','ODS_6m_default.cfg']
 
 save_flag=False

@@ -17,11 +17,11 @@ from collections import OrderedDict
 from queue import Queue
 from copy import deepcopy
 
-sys.path.append(r"../Cluster")
-sys.path.append(r"../Track")
+sys.path.append('../')
 
-import common
-from coordinate_transfer.compute_radar_pose import run
+from Origin_Point_Cloud import common
+from Origin_Point_Cloud.coordinate_transfer.compute_radar_pose import run
+from Origin_Point_Cloud.utils import read_config,write_config
 
 queue_for_calculate_polar = Queue()
 queue_for_calculate_cart_transfer = Queue()
@@ -190,7 +190,23 @@ class UartParseSDK():
                     file.close()
                 print('正在计算雷达2的世界坐标系下的位置和方向向量以及人的点云特征')
                 try:
-                    run(cls.x,cls.y,cls.xd,cls.yd,filepath)
+                    global_direction,global_position,radar1_person_feature,radar2_person_feature=run(cls.x,cls.y,cls.xd,cls.yd,filepath)
+                    config=common.config
+                    #写入人的点云特征
+                    features=['person_length_coef','person_length_intercept','person_width_max','person_width_min','person_points']
+                    for i in range(len(features)):
+                        feature=features[i]
+                        config.set('person_feature','radar1_'+feature,str(radar1_person_feature[i]))
+                    for i in range(len(features)):
+                        feature=features[i]
+                        config.set('person_feature','radar2_'+feature,str(radar2_person_feature[i]))
+                    #写入雷达2的坐标和方向
+                    config.set('radar_params','radar2x',str(global_position[0]))
+                    config.set('radar_params','radar2y',str(global_position[1]))
+                    config.set('radar_params','radar2dx',str(global_direction[0]))
+                    config.set('radar_params','radar2dy',str(global_direction[1]))
+                    write_config(config)
+                    print('训练数据写入完毕')
                 except:
                     raise Exception('请在两块雷达连线上来回走动，保证最少30s的直立行走状态')
                 exit()
@@ -336,8 +352,14 @@ class UartParseSDK():
         temp["point_list"] = deepcopy(self.cart_transfer.transpose())
         self.queue_for_cart_transfer.put(deepcopy(temp))
         temp['point_list']=temp['point_list'].tolist()
-        self.dict_cart_data[self.frame_num]=deepcopy(temp)
-        UartParseSDK.current_size+=0.5
+
+        length = len(self.evm_queue[self.evm_num - 1].dict_cart_data)
+        for evm in range(len(self.evm_queue)):
+            if evm != self.evm_num - 1:
+                if length - len(self.evm_queue[evm].dict_cart_data) > 1:
+                    return
+        self.dict_cart_data[self.frame_num] = deepcopy(temp)
+        UartParseSDK.current_size += 1 / len(common.evm_index)
 
     def parse_target_list(self, data_in, data_length):
         """
@@ -428,17 +450,19 @@ if __name__ == "__main__":
     arg_4:可视化模式（0：杨家辉点云可视化；1：杨家辉聚类可视化；2：郭泽中可视化）
     """
 
-    x=float(sys.argv[1])
-    y=float(sys.argv[2])
-    xd=float(sys.argv[3])
-    yd=float(sys.argv[4])
-    frames=int(sys.argv[5])
+    config=common.config
+    x=float(config.get('radar_params','radar1x'))
+    y=float(config.get('radar_params','radar1y'))
+    xd=float(config.get('radar_params','radar1dx'))
+    yd=float(config.get('radar_params','radar1dy'))
 
-    for evm in common.evm_index:
-        port=common.ports[evm]
-        configuration_file=common.configuration_files[evm]
-        height=common.heights[evm]
-        tilt=common.tilts[evm]
+    frames=int(sys.argv[1])
+
+    for i in range(2):
+        configuration_file=common.configuration_files[i]
+        port=common.ports[i]
+        height=float(config.get('radar_params','radar'+str(i+1)+'_height'))
+        tilt=float(config.get('radar_params','radar'+str(i+1)+'_tilt'))
         UartParseSDK(True,port[0],port[1],configuration_file,height,tilt)
     time.sleep(1)
     UartParseSDK.init_parameters(x,y,xd,yd,frames)
