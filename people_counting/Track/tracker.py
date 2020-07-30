@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from scipy.optimize import linear_sum_assignment
 
-from Track.utils import is_out_area
+from Track.utils import is_out_area,is_at_edge_in
 from Track.track import Track
 from Origin_Point_Cloud import common
 
@@ -157,8 +157,8 @@ class Tracker():
     def deal_with_unassigned_points(self):
         for i in range(len(self.unused_clusters)):
             if i not in self.pre_assignment.values():
-                # if not is_at_edge_in(self.unused_clusters[i]):
-                #     continue
+                if not is_at_edge_in(self.unused_clusters[i]):
+                    continue
                 self.init_pre_track(self.unused_clusters[i],self.unused_heights[i])
 
     #验证轨迹合法性
