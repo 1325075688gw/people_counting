@@ -17,11 +17,12 @@ class ApplicationWindow(QWidget):
 
     posture_status={1:'站立',2:'坐着',3:'躺着',4:'行走'}
 
-    def __init__(self,xmin,xmax,ymax,detection_range,loc_pos):
+    def __init__(self,xmin,xmax,ymin,ymax,detection_range,loc_pos):
         super().__init__()
 
         self.xmin=xmin
         self.xmax=xmax
+        self.ymin=ymin
         self.ymax=ymax
         self.detection_range=detection_range
         self.loc_pos=loc_pos
@@ -37,7 +38,7 @@ class ApplicationWindow(QWidget):
         self.layout = QGridLayout(self)
         self.setLayout(self.layout)
         self.plt=pg.PlotWidget()
-        self.plt.setRange(xRange=[self.xmin,self.xmax],yRange=[0,self.ymax],padding=0)
+        self.plt.setRange(xRange=[self.xmin,self.xmax],yRange=[self.ymin,self.ymax],padding=0)
         self.layout.addWidget(self.plt,0,0)
         self.plt.setBackground('w')
 
@@ -127,8 +128,8 @@ class ApplicationWindow(QWidget):
                 return i
 
 
-def run_visual(xmin,xmax,ymax,detectioin_range,loc_pos):
+def run_visual(xmin,xmax,ymin,ymax,detectioin_range,loc_pos):
     qapp = QtWidgets.QApplication(sys.argv)
-    app = ApplicationWindow(xmin, xmax, ymax,detectioin_range,loc_pos)
+    app = ApplicationWindow(xmin, xmax,ymin, ymax,detectioin_range,loc_pos)
     app.show()
     qapp.exec_()

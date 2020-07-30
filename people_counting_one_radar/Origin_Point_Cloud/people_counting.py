@@ -95,6 +95,7 @@ class UartParseSDK():
     save_to_queue_flag = True
     put_flag=1
     json_data_cart_transfer = [OrderedDict(),OrderedDict(),OrderedDict()]
+    json_data_polar = [OrderedDict(),OrderedDict(),OrderedDict()]
 
     @classmethod
     def init_parameters(cls, save_flag, save_path, end_size):
@@ -132,11 +133,12 @@ class UartParseSDK():
         self.radar_z = radar_z
         self.config_path = config_path
         self.queue_for_cart_transfer = Queue()
+        self.queue_for_polar_data=Queue()
         self.user_flag = user_flag
         self.relative_pos=relative_pos
         self.direction=direction
         if np.linalg.norm(direction)==0:
-            raise Exception('方向向量怎么可以为零向量呢？你是不是傻兄弟？')
+            raise Exception('方向向量不可以为零向量')
         self.theta_x=math.acos(direction[0]/np.linalg.norm(direction))
         self.theta_y=math.acos(direction[1]/np.linalg.norm(direction))
         self.C=np.array([[direction[1],direction[0]],[-direction[0],direction[1]]])/np.linalg.norm(direction)
@@ -183,16 +185,18 @@ class UartParseSDK():
         while not common.stop_flag:
             frame_data=dict()
             frame_data['point_list']=dict()
-            door_frame_data = dict()
-            door_frame_data['point_list'] = dict()
+            polar_data=dict()
 
             for evm in cls.evm_queue:
                 while evm.queue_for_cart_transfer.qsize() > 3:
-                    print("队列{0}出队".format(evm.evm_num))
                     evm.queue_for_cart_transfer.get()
                 evm_point_list = evm.queue_for_cart_transfer.get()
                 frame_data['point_list'][str(evm.evm_num)]=evm_point_list.tolist()
 
+                if cls.save_flag==0:
+                    while evm.queue_for_polar_data.qsize()>3:
+                        evm.queue_for_polar_data.get()
+                    polar_data[str(evm.evm_num)]=evm.queue_for_polar_data.get()
 
             cls._frame_num += 1
             cls.current_size += 1
@@ -202,6 +206,8 @@ class UartParseSDK():
             frame_dict_cart = {frame_num: frame_data}
             if cls.save_flag==0:
                 cls.json_data_cart_transfer[cls.put_flag%3].update(frame_dict_cart)
+                cls.json_data_polar[cls.put_flag%3].update({frame_num:polar_data})
+
             common.queue_for_cluster_transfer.put(frame_data)
 
     @staticmethod
@@ -222,14 +228,21 @@ class UartParseSDK():
                     print("创建文件夹：{0}".format(path_dir))
                     os.makedirs(path_dir)
                 file = open(path_dir + "/cart_data"+str(cls.put_flag-1)+".json", "w")
-
                 json.dump(cls.json_data_cart_transfer[(cls.put_flag-1)%3],file)
                 cls.json_data_cart_transfer[(cls.put_flag-1)%3]=OrderedDict()
-
                 file.flush()
                 file.close()
                 print("笛卡尔数据写入完毕")
+
+                file=open(path_dir+'/polar_data'+str(cls.put_flag-1)+'.json','w')
+                json.dump(cls.json_data_polar[(cls.put_flag-1)%3],file)
+                cls.json_data_polar[(cls.put_flag-1)%3]=OrderedDict()
+                file.flush()
+                file.close()
+                print('极坐标数据写入完成')
+
                 print("数据录制完成")
+
 
     def get_frame(self, data_in):
         """
@@ -343,6 +356,7 @@ class UartParseSDK():
         :function:
             1.将极坐标转换为直角坐标
             2.根据雷达摆放的相对位置对直角坐标进行转换使均位于同一直角坐标系中
+            3.根据雷达摆放位置对雷达各自的探测范围进行限定，过滤掉其他雷达区域中的点
         :params:
             # range
             self.polar[0, i]
@@ -357,6 +371,7 @@ class UartParseSDK():
         :return: None
         '''
         self.cart_transfer = [[],[],[],[],[]]
+        polar_frame=[]
         for i in range(self.detected_point_num):
 
             z = self.radar_z - self.polar[0, i] * math.sin(
@@ -379,8 +394,13 @@ class UartParseSDK():
             self.cart_transfer[3].append(self.polar[3, i])
             self.cart_transfer[4].append(self.polar[4, i])
 
+            polar_frame.append({'range2':self.polar[0,i],'azi':self.polar[1,i],'elev':self.polar[2,i],
+                                'doppler':self.polar[3,i],'snr':self.polar[4,i]})
+
         self.cart_transfer=np.array(self.cart_transfer)
         self.queue_for_cart_transfer.put(self.cart_transfer.transpose())
+        if self.save_flag==0:
+            self.queue_for_polar_data.put(polar_frame)
 
     def parse_target_list(self, data_in, data_length):
         """
@@ -448,7 +468,7 @@ class UartParseSDK():
                 break
 
     @classmethod
-    def show_frame(cls, show_flag,xmin,xmax,ymax,detection_range):
+    def show_frame(cls, show_flag,xmin,xmax,ymin,ymax,detection_range):
         """
         先聚类，然后再可视化
         :return: None
@@ -461,18 +481,18 @@ class UartParseSDK():
             pass
         # 郭泽中可视化
         elif show_flag==2:
-            multiprocessing.Process(target=run_visual,args=(xmin,xmax,ymax,detection_range,common.loc_pos,)).start()
+            multiprocessing.Process(target=run_visual,args=(xmin,xmax,ymin,ymax,detection_range,common.loc_pos,)).start()
         else:
-            multiprocessing.Process(target=visual4plots,args=(common.loc_pos,common.point_cloud_show_queue,common.cluster_show_queue,xmin,xmax,ymax,detection_range,)).start()
+            multiprocessing.Process(target=visual4plots,args=(common.loc_pos,common.point_cloud_show_queue,common.cluster_show_queue,xmin,xmax,ymin,ymax,detection_range,)).start()
 
 def run_system():
 
     config=common.config
-    radar_num=len(common.evm_index)
     common.zmax=multiprocessing.Value('d',float(config.get('radar_params','zmax'))).value
-    common.xmin=multiprocessing.Value('d',-5).value
-    common.xmax=multiprocessing.Value('d',5).value
-    common.ymax=multiprocessing.Value('d',common.detection_range).value
+    common.xmin=multiprocessing.Value('d',-5).value-0.1
+    common.xmax=multiprocessing.Value('d',5).value+0.1
+    common.ymax=multiprocessing.Value('d',6).value+0.1
+    common.ymin=multiprocessing.Value('d',0).value-0.1
 
     for i in common.evm_index:
         port=common.ports[i]
@@ -483,9 +503,9 @@ def run_system():
         configuration_file=common.configuration_files[i]
         UartParseSDK(True,port[0],port[1],configuration_file,height,tilt,relative_pos,direction)
 
-    UartParseSDK.init_parameters(-1,r'./data/data_7_27，ODS6m,8人，一块板子，第1次',800)
+    UartParseSDK.init_parameters(0,r'./data/data_7_30，ODS6m,1人，1块板子，第3次',800)
 
-    UartParseSDK.show_frame(2,common.xmin,common.xmax,common.ymax,common.detection_range)
+    UartParseSDK.show_frame(2,common.xmin,common.xmax,common.ymin,common.ymax,common.detection_range)
 
 if __name__ == "__main__":
     # UartParseSDK()函数参数说明：

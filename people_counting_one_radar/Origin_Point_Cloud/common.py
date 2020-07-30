@@ -29,7 +29,7 @@ evm_index=[0]
 
 ports=[['/dev/ttyACM1','/dev/ttyACM0'],
        ['/dev/ttyACM3','/dev/ttyACM2']]
-configuration_files=['/ODS_6m_default.cfg','/ODS_6m_default.cfg']
+configuration_files=['ODS_6m_default.cfg','ODS_6m_default.cfg']
 
 save_flag=False
 
