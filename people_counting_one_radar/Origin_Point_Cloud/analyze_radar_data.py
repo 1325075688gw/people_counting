@@ -6,7 +6,7 @@ sys.path.append('../')
 from Cluster import cluster_common
 from Origin_Point_Cloud import common
 
-from people_counting_two_radar.Track import Tracker
+from Track.tracker import Tracker
 from Cluster.muti_radar_cluster import Cluster
 from Origin_Point_Cloud.utils import mix_radar_clusters
 
@@ -32,6 +32,11 @@ def cluster_points(show_flag,queue_for_cluster_transfer,cluster_show_queue,loc_p
     except:
         print('聚类初始化出错')
 
+    start = False
+    false_blocks = dict()
+    frame_num = 0
+    people_num = 8
+
     while 1:
         frame_data = queue_for_cluster_transfer.get()
 
@@ -45,6 +50,9 @@ def cluster_points(show_flag,queue_for_cluster_transfer,cluster_show_queue,loc_p
         if show_flag==3:
             cluster_show_queue.put(frame_cluster_result)
             cl.put_points_show(point_cloud_show_queue)
+        if show_flag==1:
+            cl.put_points_show(point_cloud_show_queue)
+            continue
 
         clusters_center = cl.get_cluster_center_point_list()
         people_height_list = cl.get_height_list()
@@ -54,7 +62,7 @@ def cluster_points(show_flag,queue_for_cluster_transfer,cluster_show_queue,loc_p
         except:
             print('匹配出错')
 
-        frame_num = frame_data["frame_num"]
+        frame_num += 1
 
         try:
             tracker.nextFrame(clusters_center, people_height_list)
@@ -65,6 +73,20 @@ def cluster_points(show_flag,queue_for_cluster_transfer,cluster_show_queue,loc_p
         except:
             print('跟踪出错')
 
-        loc_pos.put([locations, postures, tracker.get_cluster_num(),frame_num,origin_clusters])
+        # if not start and len(locations)==people_num:
+        #     start=True
+        # if start and len(locations)!=people_num:
+        #     delta=abs(people_num-len(locations))
+        #     if delta in false_blocks:
+        #         false_blocks[delta][-1]+=1
+        #     else:
+        #         false_blocks[delta]=[1]
+        # if start and len(locations)==people_num:
+        #     for delta in false_blocks:
+        #         if false_blocks[delta][-1]!=0:
+        #             false_blocks[delta].append(0)
+        # print(start,frame_num,{delta:sum(false_blocks[delta]) for delta in false_blocks},sum([sum(false_blocks[delta]) for delta in false_blocks]))
 
-        # loc_pos.put([locations, heights, tracker.get_cluster_num(),frame_num,origin_clusters])
+        # loc_pos.put([locations, postures, tracker.get_cluster_num(),frame_num,origin_clusters])
+
+        loc_pos.put([locations, heights, tracker.get_cluster_num(),frame_num,origin_clusters])

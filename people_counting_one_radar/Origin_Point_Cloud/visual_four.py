@@ -5,7 +5,6 @@ import pyqtgraph as pg
 from PyQt5 import QtWidgets
 
 from Cluster.point_cloud import PointCloud
-from Origin_Point_Cloud.common import azi_range
 
 class FourPlots(QWidget):
 
@@ -21,14 +20,14 @@ class FourPlots(QWidget):
 
     posture_status={1:'站立',2:'坐着',3:'躺着',4:'行走'}
 
-    def __init__(self,loc_pos,point_cloud_show_queue,cluster_show_queue,xmin,xmax,ymax,detection_range):
+    def __init__(self,loc_pos,point_cloud_show_queue,cluster_show_queue,xmin,xmax,ymin,ymax,detection_range):
         super().__init__()
 
         self.loc_pos=loc_pos
         self.point_cloud_show_queue=point_cloud_show_queue
         self.cluster_show_queue=cluster_show_queue
         self.xmin=xmin
-        self.ymin=0
+        self.ymin=ymin
         self.xmax=xmax
         self.ymax=ymax
         self.detection_range=detection_range
@@ -76,53 +75,21 @@ class FourPlots(QWidget):
         #初始化姿态列表
         self.texts=[]
 
-        #画边界
-        self.paintBorder(self.track_plt)
-        self.paintBorder(self.center_plt)
-        self.paintBorder(self.cluster_plt)
-        self.paintBorder(self.point_plt)
-        # self.paintLines(self.track_plt)
-
     def paintBorder(self, plt):
 
-        angle = np.arange(math.pi/2-azi_range, math.pi * (1/2+1/20), math.pi / 600)
+        angle = np.arange(math.pi / 6, math.pi * 5 / 6, math.pi / 600)
         x = np.cos(angle) * self.detection_range
         y = np.sin(angle) * self.detection_range
 
-        angle=math.pi*(1/2+1/20)
-
         x = np.insert(x, 0, 0)
         y = np.insert(y, 0, 0)
-
-        x = np.insert(x, len(x), math.cos(angle)/math.sin(angle)*3)
-        y = np.insert(y, len(y), 3)
-
-        x = np.insert(x, len(x), -math.tan(azi_range)*3)
-        y = np.insert(y, len(y), 3)
-
         x = np.insert(x, len(x), 0)
         y = np.insert(y, len(y), 0)
-
         plt.plot(x, y)
 
-    def paintLines(self,plt):
-        start = math.pi / 4
-        end = math.pi * 3 / 4
-        delta = math.pi / 4
-
-        angle = start + delta
-        plt.plot([0, 6 * math.cos(angle)], [0, 6 * math.sin(angle)], c='black')
-
-        distances=[2,10/3,50/9]
-        angle = np.arange(start, end, (end - start) / 100)
-        for distance in distances:
-            x = np.cos(angle) * distance
-            y = np.sin(angle) * distance
-            plt.plot(x, y, c='black')
-
     def update_track(self):
-        locations, postures, cluster_num, frame_num, origin_clusters = self.loc_pos.get()
-        # locations, heights, cluster_num, frame_num, origin_clusters = self.loc_pos.get()
+        # locations, postures, cluster_num, frame_num, origin_clusters = self.loc_pos.get()
+        locations, heights, cluster_num, frame_num, origin_clusters = self.loc_pos.get()
 
         self.setWindowTitle('第' + str(frame_num) + '帧，当前帧有' + str(len(locations)) + '个人,当前帧有' + str(cluster_num) + '类')
 
@@ -208,9 +175,8 @@ class FourPlots(QWidget):
                 self.used_color_indexes.append(i)
                 return i
 
-
-def visual4plots(loc_pos,point_cloud_show_queue,cluster_show_queue,xmin,xmax,ymax,detection_range):
+def visual4plots(loc_pos,point_cloud_show_queue,cluster_show_queue,xmin,xmax,ymin,ymax,detection_range):
     qapp = QtWidgets.QApplication(sys.argv)
-    app = FourPlots(loc_pos,point_cloud_show_queue,cluster_show_queue,xmin,xmax,ymax,detection_range)
+    app = FourPlots(loc_pos,point_cloud_show_queue,cluster_show_queue,xmin,xmax,ymin,ymax,detection_range)
     app.show()
     qapp.exec_()

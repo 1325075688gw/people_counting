@@ -27,9 +27,9 @@ stop_flag=False
 
 evm_index=[0]
 
-ports=[['/dev/ttyACM3','/dev/ttyACM2'],
-       ['/dev/ttyACM1','/dev/ttyACM0']]
-configuration_files=['ODS_6m_default.cfg','ODS_6m_default.cfg']
+ports=[['/dev/ttyACM1','/dev/ttyACM0'],
+       ['/dev/ttyACM3','/dev/ttyACM2']]
+configuration_files=['/ODS_6m_default.cfg','/ODS_6m_default.cfg']
 
 save_flag=False
 
@@ -37,13 +37,13 @@ save_flag=False
 azi_range=math.pi/3
 max_accept_pair_distance=1
 
-max_accept_distance=0.5
+max_accept_distance=0.8
 in_rate=0.6
 in_frames=20
 out_frames=20
 longest_pause_frames=200
 MAX_SAVE_FRAMES=100
-doFilter=False
+doFilter=True
 arg_smooth=0.5
 frame_rate=0.5
 frames_per_sec=20

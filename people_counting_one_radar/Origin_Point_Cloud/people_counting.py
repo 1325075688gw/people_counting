@@ -19,9 +19,10 @@ from queue import Queue
 
 sys.path.append('../')
 
-from people_counting_two_radar.Track import run_visual
+from Track.visual import run_visual
 from Origin_Point_Cloud import analyze_radar_data
 from Origin_Point_Cloud import common
+from Origin_Point_Cloud.utils import read_config,write_config
 from Origin_Point_Cloud.visual_four import visual4plots
 
 queue_for_calculate_polar = Queue()
@@ -482,9 +483,9 @@ def run_system():
         configuration_file=common.configuration_files[i]
         UartParseSDK(True,port[0],port[1],configuration_file,height,tilt,relative_pos,direction)
 
-    UartParseSDK.init_parameters(-1,r'./data/data_6_27，ODS6m,8人，两块板子，第2次',800)
+    UartParseSDK.init_parameters(-1,r'./data/data_7_27，ODS6m,8人，一块板子，第1次',800)
 
-    UartParseSDK.show_frame(3,common.xmin,common.xmax,common.ymax,common.detection_range)
+    UartParseSDK.show_frame(2,common.xmin,common.xmax,common.ymax,common.detection_range)
 
 if __name__ == "__main__":
     # UartParseSDK()函数参数说明：

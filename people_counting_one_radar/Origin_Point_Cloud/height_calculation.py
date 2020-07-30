@@ -1,8 +1,8 @@
 # 作者     ：Origin_Point_Cloud
 # 创建日期 ：2020-05-04  上午 11:49
 # 文件名   ：receive_uart_data_录制数据.py
-
-
+import json
+import math
 import struct
 import numpy as np
 import os
@@ -147,7 +147,7 @@ class UartParseSDK():
 
             for index, value in enumerate(polar):
                 #     def __init__(self, pid, azi, elev, range2, doppler, snr):
-                raw_point = RawPoint(index+1, value[0], value[1], value[2], value[3], value[4]).__dict__
+                raw_point = RawPoint(index+1, value[1], value[2], value[0], value[3], value[4]).__dict__
                 # raw_point = RawPoint(index+1, value[1], value[2], value[0], value[3], value[4]).__dict__
                 point_cloud_list.append(raw_point)
                 point_cloud_num += 1
@@ -159,6 +159,7 @@ class UartParseSDK():
             temp["time_stamp"] = t
             temp["point_num"] = point_cloud_num
             temp["point_list"] = point_cloud_list
+
             frame_num = "frame_num_" + str(self.frame_num)
             frame_dict_polar = {frame_num: temp}
             if self.save_2_queue_flag == True:
@@ -278,6 +279,8 @@ class UartParseSDK():
                     elev -= 256
                 if doppler >= 65536:
                     doppler -= 65536
+                if doppler==0:
+                    continue
                 # azi
                 self.polar[1, i] = azi * point_unit[1]
                 # elev
@@ -341,7 +344,7 @@ if __name__ == "__main__":
 
     for i in range(1):
         common.stop_flag=False
-        print('请在雷达前方1.5m-6m的范围内行走...')
+        print('请在雷达前方2m-6m的范围内行走...')
 
         port=common.ports[i]
         configuration_file=common.configuration_files[i]

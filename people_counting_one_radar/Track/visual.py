@@ -49,14 +49,24 @@ class ApplicationWindow(QWidget):
 
     def paintBorder(self, plt):
 
-        angle = np.arange(math.pi/2-azi_range, math.pi * (1/2+1/20), math.pi / 100)
+        angle = np.arange(math.pi / 2 - azi_range, math.pi * (1 / 2 + 1 / 20), math.pi / 600)
         x = np.cos(angle) * self.detection_range
         y = np.sin(angle) * self.detection_range
 
+        angle = math.pi * (1 / 2 + 1 / 20)
+
         x = np.insert(x, 0, 0)
         y = np.insert(y, 0, 0)
+
+        x = np.insert(x, len(x), math.cos(angle) / math.sin(angle) * 3)
+        y = np.insert(y, len(y), 3)
+
+        x = np.insert(x, len(x), -math.tan(azi_range) * 3)
+        y = np.insert(y, len(y), 3)
+
         x = np.insert(x, len(x), 0)
         y = np.insert(y, len(y), 0)
+
         plt.plot(x, y)
 
     #每一帧的显示
@@ -64,8 +74,8 @@ class ApplicationWindow(QWidget):
         if self.loc_pos.empty():
             return
 
-        locations,postures,cluster_num,frame_num,origin_clusters=self.loc_pos.get()
-        # locations,heights,cluster_num,frame_num,origin_clusters=self.loc_pos.get()
+        # locations,postures,cluster_num,frame_num,origin_clusters=self.loc_pos.get()
+        locations,heights,cluster_num,frame_num,origin_clusters=self.loc_pos.get()
 
         self.setWindowTitle('当前有'+str(len(locations))+'个人')
 
@@ -93,9 +103,9 @@ class ApplicationWindow(QWidget):
                 self.people[person]=index
 
             locs.append({'pos':locations[person],'brush':self.colors[self.people[person]]})
-            text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
+            # text=pg.TextItem(self.posture_status[postures[person]],color='#000000')
             # text=pg.TextItem(html=('<h1>'+str(self.posture_status[postures[person]])+'</h1>'),color='#000000')
-            # text=pg.TextItem(html=('<h1>'+str(heights[person])+'</h1>'),color='#000000')
+            text=pg.TextItem(html=('<h1>'+str(heights[person])+'</h1>'),color='#000000')
             # text = pg.TextItem(str(locations[person]), color='#000000')
             text.setPos(locations[person][0],locations[person][1])
 
