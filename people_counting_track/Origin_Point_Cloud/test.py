@@ -1,0 +1,7 @@
+from Origin_Point_Cloud import common
+from Origin_Point_Cloud.utils import mix_radar_clusters
+
+centers={0: [[1.3863890219786046, 3.911038705058925], [2.452072205596853, 2.6856812743218557], [2.5845217653622505, 0.931243495631661]], 1: [[1.5510442581402117, 3.921993204114698], [2.8340713457702447, 2.325716397451518]]}
+heights={0: [1.964, 1.303, 1.79], 1: [1.649, 0.346]}
+
+mix_radar_clusters(centers,heights)
