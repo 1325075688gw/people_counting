@@ -503,7 +503,7 @@ def run_system():
         configuration_file=common.configuration_files[i]
         UartParseSDK(True,port[0],port[1],configuration_file,height,tilt,relative_pos,direction)
 
-    UartParseSDK.init_parameters(0,r'./data/data_7_28，ODS6m,10人，两块板子，第3次',800)
+    UartParseSDK.init_parameters(0,r'./data/data_7_30，ODS6m,10人，两块板子，第1次',800)
 
     UartParseSDK.show_frame(2,common.xmin,common.xmax,common.ymin,common.ymax,common.detection_range)
 

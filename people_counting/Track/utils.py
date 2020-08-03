@@ -5,7 +5,7 @@ def is_at_edge_out(location):
     x = location[0]
     y = location[1]
 
-    if x < common.xmin + 0.5 or x > common.xmax - 0.5 or y < common.ymin+1 or y > common.ymax - 1:
+    if x>common.xmax-3 and y>common.ymax-1.5:
         return True
 
     return False
@@ -14,7 +14,7 @@ def is_at_edge_in(location):
     x = location[0]
     y = location[1]
 
-    if x < common.xmin + 1 or x > common.xmax - 1 or y < common.ymin + 2.5 or y > common.ymax - 2.5:
+    if x<common.xmin+3 and y<common.ymin+1.5:
         return True
 
     return False
