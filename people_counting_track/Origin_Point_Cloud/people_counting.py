@@ -489,10 +489,10 @@ def run_system():
 
     config=common.config
     common.zmax=multiprocessing.Value('d',float(config.get('radar_params','zmax'))).value
-    common.xmin=multiprocessing.Value('d',min([float(config.get('radar_params','radar'+str(i+1)+'x')) for i in range(2)])).value-0.1
-    common.xmax=multiprocessing.Value('d',max([float(config.get('radar_params','radar'+str(i+1)+'x')) for i in range(2)])).value+0.1
-    common.ymax=multiprocessing.Value('d',max([float(config.get('radar_params','radar'+str(i+1)+'y')) for i in range(2)])).value+0.1
-    common.ymin=multiprocessing.Value('d',0).value-0.1
+    common.xmin=multiprocessing.Value('d',min([float(config.get('radar_params','radar'+str(i+1)+'x')) for i in range(2)])).value
+    common.xmax=multiprocessing.Value('d',max([float(config.get('radar_params','radar'+str(i+1)+'x')) for i in range(2)])).value
+    common.ymax=multiprocessing.Value('d',max([float(config.get('radar_params','radar'+str(i+1)+'y')) for i in range(2)])).value
+    common.ymin=multiprocessing.Value('d',0).value
 
     for i in common.evm_index:
         port=common.ports[i]

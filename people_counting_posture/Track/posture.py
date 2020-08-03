@@ -1,4 +1,4 @@
-from Origin_Point_Cloud import common
+from Track import track_common
 import numpy as np
 
 class Posture():
@@ -17,7 +17,7 @@ class Posture():
     def add_posture(self,height_rate,velocity,move_range):
         posture=self.cal_posture(height_rate,velocity,move_range)
         self.postures.append(posture)
-        if len(self.postures)>common.MAX_SAVE_FRAMES:
+        if len(self.postures)>track_common.MAX_SAVE_FRAMES:
             del self.postures[0]
 
     def get_posture(self):
@@ -26,10 +26,10 @@ class Posture():
             multiple = 1.5
 
         if self.postures[-1]!=self.last_posture:
-            length=min(len(self.postures),int(common.arg_smooth*common.frames_per_sec))
+            length=min(len(self.postures),int(track_common.arg_smooth*track_common.frames_per_sec))
             counts=np.bincount(self.postures[-length:])
             most=np.argmax(counts)
-            if counts[most]/length>common.posture_rate*multiple and most==self.postures[-1]:
+            if counts[most]/length>track_common.posture_rate*multiple and most==self.postures[-1]:
                 self.last_posture=self.postures[-1]
         return self.last_posture
 

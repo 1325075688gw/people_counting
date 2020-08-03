@@ -1,4 +1,4 @@
-from Origin_Point_Cloud import common
+from Track import track_common
 import numpy as np
 
 class Height():
@@ -47,7 +47,7 @@ class Height():
         if self.index <= self.FRAME_NUMBER_FOR_HEIGHT_CAL:
             self.cal_real_height()
 
-        if len(self.heights) > common.MAX_SAVE_FRAMES:
+        if len(self.heights) > track_common.MAX_SAVE_FRAMES:
             del self.heights[0]
 
     def cal_real_height(self):

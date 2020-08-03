@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 
-from Origin_Point_Cloud import common
+from Track import track_common
 from Track.height import Height
 from Track.posture import Posture
 from Track.utils import is_at_edge_out
@@ -37,10 +37,10 @@ class Track():
         return self.height.get_last_height()
 
     def get_location(self):
-        if not common.doFilter:
+        if not track_common.doFilter:
             return self.location
 
-        start=max(-len(self.locations),-int(common.frames_per_sec*common.arg_smooth))
+        start=max(-len(self.locations),-int(track_common.frames_per_sec*track_common.arg_smooth))
         location=np.array(self.locations[start:]).mean(axis=0)
         return location
 
@@ -57,7 +57,7 @@ class Track():
         self.height.predict()
 
     def get_move_range(self):
-        start=max(-len(self.locations),-int(common.frames_per_sec*common.arg_smooth))
+        start=max(-len(self.locations),-int(track_common.frames_per_sec*track_common.arg_smooth))
         points_for_cal = np.array(self.locations[start:])
         x = points_for_cal[:, 0]
         y = points_for_cal[:, 1]
@@ -66,13 +66,13 @@ class Track():
         return move_range
 
     def update_posture(self):
-        start=max(-len(self.locations),-int(common.frames_per_sec*common.arg_smooth))
+        start=max(-len(self.locations),-int(track_common.frames_per_sec*track_common.arg_smooth))
         points_for_cal = np.array(self.locations[start:])
         x = points_for_cal[:, 0]
         y = points_for_cal[:, 1]
         move_range = np.linalg.norm([np.std(x), np.std(y)])*2
         height_rate = self.height.get_height_rate()
-        velocity = np.mean([np.linalg.norm(self.speed[i]) for i in range(start,len(self.speed))])*common.frames_per_sec
+        velocity = np.mean([np.linalg.norm(self.speed[i]) for i in range(start,len(self.speed))])*track_common.frames_per_sec
         self.posture.add_posture(height_rate, velocity, move_range)
 
     def not_detected_update(self,is_pre):

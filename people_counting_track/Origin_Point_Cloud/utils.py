@@ -6,6 +6,7 @@ from scipy.optimize import linear_sum_assignment
 import configparser
 
 from Origin_Point_Cloud import common
+from Track import track_common
 
 def read_config():
     config=configparser.ConfigParser()
@@ -145,7 +146,7 @@ def assign_common_two_area_points(points1,points2):
         j=col_ind[i]
         indexi.append(i)
         indexj.append(j)
-        if distances[i][j] < common.max_accept_pair_distance:
+        if distances[i][j] < track_common.max_accept_pair_distance:
             location=(points1[i][:2]+points2[j][:2])/2
             height=min(points1[i][-1],points2[j][-1])
             points.append(np.array([location[0],location[1],height]))
@@ -251,7 +252,7 @@ def get_radar_nums_common(x,y):
         relative_pos=location-radar_pos
         if np.linalg.norm(relative_pos)<common.detection_range:
             cos=round(relative_pos.dot(direction)/(np.linalg.norm(relative_pos)*np.linalg.norm(direction)),2)
-            if math.acos(cos)<=common.azi_range:
+            if math.acos(cos)<=track_common.azi_range:
                 radar_index.append(i)
 
     return radar_index

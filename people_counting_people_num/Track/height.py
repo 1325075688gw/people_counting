@@ -1,4 +1,4 @@
-from Origin_Point_Cloud import common
+from Track import track_common
 import numpy as np
 
 class Height():
@@ -41,13 +41,13 @@ class Height():
         self.heights.append(self.height)
         self.index += 1
 
-        if len(self.heights) == common.frames_per_sec*common.arg_smooth:
+        if len(self.heights) == track_common.frames_per_sec*track_common.arg_smooth:
             self.real_height = np.mean(self.heights)
 
         if self.index <= self.FRAME_NUMBER_FOR_HEIGHT_CAL:
             self.cal_real_height()
 
-        if len(self.heights) > common.MAX_SAVE_FRAMES:
+        if len(self.heights) > track_common.MAX_SAVE_FRAMES:
             del self.heights[0]
 
     def cal_real_height(self):

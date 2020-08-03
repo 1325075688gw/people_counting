@@ -4,7 +4,7 @@ from scipy.optimize import linear_sum_assignment
 
 from Track.utils import is_out_area
 from Track.track import Track
-from Origin_Point_Cloud import common
+from Track import track_common
 
 '''
     :NOTE:
@@ -42,7 +42,7 @@ class Tracker():
         self.clusters, self.heights = self.preprocess_clusters(clusters, heights)
 
         self.origin_clusters.append(self.clusters)
-        if len(self.origin_clusters)>common.MAX_SAVE_FRAMES:
+        if len(self.origin_clusters)>track_common.MAX_SAVE_FRAMES:
             del self.origin_clusters[0]
 
         # 判断当前是否有轨迹存在
@@ -58,7 +58,7 @@ class Tracker():
 
         # 保存当前帧过滤后的聚类点
         self.cluster_nums.append(len(self.clusters))
-        if len(self.cluster_nums)>common.MAX_SAVE_FRAMES:
+        if len(self.cluster_nums)>track_common.MAX_SAVE_FRAMES:
             del self.cluster_nums[0]
 
     #根据给定位置与身高初始化预轨迹
