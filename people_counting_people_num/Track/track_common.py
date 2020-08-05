@@ -1,6 +1,6 @@
 import math
 
-azi_range=math.pi/3
+azi_range=math.pi/4
 max_accept_pair_distance=1.6
 
 max_accept_distance=0.8

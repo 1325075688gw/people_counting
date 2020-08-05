@@ -177,7 +177,7 @@ class Tracker():
         to_be_deleted=[]
         for track_id in self.pre_tracks:
             track=self.pre_tracks[track_id]
-            if len(track.locations)>=self.in_frames:
+            if len(track.status)>=self.in_frames:
                 to_be_deleted.append(track_id)
                 if (self.in_frames-track.not_detected_times)/self.in_frames>self.in_rate:
                     self.pre2formal(track_id)
@@ -220,7 +220,7 @@ class Tracker():
             track = self.tracks[track_id]
             row = np.array([])
             for j in range(len(self.clusters)):
-                row = np.append(row, [np.linalg.norm(self.clusters[j] - track.predict_location)*0.8+0.2*(track.height.predict_height-self.heights[j])], axis=0)
+                row = np.append(row, [np.linalg.norm(self.clusters[j] - track.get_predict_location())*0.8+0.2*(track.height.predict_height-self.heights[j])], axis=0)
             if distance.size == 0:
                 distance = np.array([row])
             else:
@@ -236,7 +236,7 @@ class Tracker():
             track = self.pre_tracks[track_id]
             row = np.array([])
             for j in range(len(self.unused_clusters)):
-                row = np.append(row, [np.linalg.norm(self.unused_clusters[j] - track.predict_location)*0.8+0.2*(track.height.predict_height-self.unused_heights[j])], axis=0)
+                row = np.append(row, [np.linalg.norm(self.unused_clusters[j] - track.get_predict_location())*0.8+0.2*(track.height.predict_height-self.unused_heights[j])], axis=0)
             if distance.size == 0:
                 distance = np.array([row])
             else:
