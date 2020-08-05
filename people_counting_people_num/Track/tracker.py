@@ -181,7 +181,7 @@ class Tracker():
                 to_be_deleted.append(track_id)
                 if (self.in_frames-track.not_detected_times)/self.in_frames>self.in_rate:
                     self.pre2formal(track_id)
-                    print(self.frame,'新轨迹',list(self.tracks.keys())[-1],track.not_detected_times,len(self.tracks))
+                    # print(self.frame,'新轨迹',list(self.tracks.keys())[-1],track.not_detected_times,len(self.tracks))
 
 
         for track_id in to_be_deleted:

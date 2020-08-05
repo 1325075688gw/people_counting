@@ -67,16 +67,17 @@ class Track():
         self.posture.add_posture(height_rate, velocity, move_range)
 
     def not_detected_update(self,is_pre):
-        location=self.get_last_location()
+        # self.location=self.predict_location
+        # speed=np.array(self.predict_location-self.get_last_location())
         speed=[0,0]
 
-        self.locations.append(location)
+        self.locations.append(self.location)
         self.height.not_detected_update()
         self.speed.append(speed)
 
         self.update_posture()
 
-        if is_pre or is_at_edge_out(location):
+        if is_pre or is_at_edge_out(self.location):
             self.not_detected_times+=1
         else:
             self.not_detected_times+=0.5

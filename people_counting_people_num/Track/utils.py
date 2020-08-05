@@ -25,7 +25,7 @@ def is_out_area(location):
     if location[0]<common.xmin or location[0]>=common.xmax or location[1]>common.ymax or location[1]<common.ymin:
         return True
 
-    if np.linalg.norm([common.xmin-location[0],common.ymin-location[1]])<2 or np.linalg.norm([common.xmax-location[0],common.ymax-location[1]])<2:
-        return True
+    # if np.linalg.norm([common.xmin-location[0],common.ymin-location[1]])<2 or np.linalg.norm([common.xmax-location[0],common.ymax-location[1]])<2:
+    #     return True
 
     return False
